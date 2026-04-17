@@ -1,0 +1,29 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="kiro-bg" x1="11" y1="9" x2="54" y2="57" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9C5BFF"/>
+      <stop offset="1" stop-color="#6E33E8"/>
+    </linearGradient>
+    <radialGradient id="kiro-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(22 18) rotate(46.5) scale(37.5 34.5)">
+      <stop stop-color="#B98BFF"/>
+      <stop offset="1" stop-color="#B98BFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="kiro-shadow" x="2" y="2" width="60" height="60" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#2E0C74" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+  <g filter="url(#kiro-shadow)">
+    <rect x="3" y="3" width="58" height="58" rx="18" fill="url(#kiro-bg)"/>
+    <rect x="3" y="3" width="58" height="58" rx="18" fill="url(#kiro-glow)"/>
+  </g>
+  <g fill="#FCFCFE">
+    <circle cx="33.5" cy="28.5" r="13.9"/>
+    <rect x="19.6" y="28.2" width="27.8" height="15.1" rx="7.55"/>
+    <circle cx="18.5" cy="37.8" r="5.7"/>
+    <circle cx="22.8" cy="43.5" r="6.7"/>
+    <circle cx="31.9" cy="45.1" r="7.4"/>
+    <circle cx="41.2" cy="43.3" r="6.5"/>
+  </g>
+  <ellipse cx="31.2" cy="27.4" rx="2.35" ry="3.65" fill="#111111"/>
+  <ellipse cx="39.0" cy="27.4" rx="2.35" ry="3.65" fill="#111111"/>
+</svg>

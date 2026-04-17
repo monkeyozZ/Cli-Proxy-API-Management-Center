@@ -9,6 +9,7 @@ export type OAuthProvider =
   | 'anthropic'
   | 'antigravity'
   | 'gemini-cli'
+  | 'kiro'
   | 'kimi';
 
 // OAuth 流程状态

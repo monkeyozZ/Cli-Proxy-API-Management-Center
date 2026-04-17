@@ -5,6 +5,7 @@ import type { AuthFileItem } from '@/types';
 import { useNotificationStore } from '@/stores';
 import { formatFileSize } from '@/utils/format';
 import { MAX_AUTH_FILE_SIZE } from '@/utils/constants';
+import { isKiroFile } from '@/utils/quota';
 import {
   applyCodexAuthFileWebsockets,
   normalizeExcludedModels,
@@ -20,6 +21,30 @@ type AuthFileHeadersErrorKey =
   | 'auth_files.headers_invalid_object'
   | 'auth_files.headers_invalid_value';
 
+const KIRO_TEXT_FIELD_DEFINITIONS = [
+  { field: 'accessToken', jsonKey: 'access_token', aliases: ['accessToken'] },
+  { field: 'refreshToken', jsonKey: 'refresh_token', aliases: ['refreshToken'] },
+  { field: 'profileArn', jsonKey: 'profile_arn', aliases: ['profileArn'] },
+  { field: 'expiresAt', jsonKey: 'expires_at', aliases: ['expiresAt', 'expired', 'expire'] },
+  { field: 'authMethod', jsonKey: 'auth_method', aliases: ['authMethod'] },
+  { field: 'provider', jsonKey: 'provider', aliases: [] },
+  { field: 'clientId', jsonKey: 'client_id', aliases: ['clientId'] },
+  { field: 'clientSecret', jsonKey: 'client_secret', aliases: ['clientSecret'] },
+  { field: 'region', jsonKey: 'region', aliases: ['authRegion'] },
+  { field: 'apiRegion', jsonKey: 'api_region', aliases: ['apiRegion'] },
+  { field: 'machineId', jsonKey: 'machine_id', aliases: ['machineId'] },
+  { field: 'email', jsonKey: 'email', aliases: [] },
+  { field: 'subscriptionTitle', jsonKey: 'subscription_title', aliases: ['subscriptionTitle'] },
+  { field: 'proxyUsername', jsonKey: 'proxy_username', aliases: ['proxyUsername'] },
+  { field: 'proxyPassword', jsonKey: 'proxy_password', aliases: ['proxyPassword'] },
+] as const;
+
+type KiroTextEditorField = (typeof KIRO_TEXT_FIELD_DEFINITIONS)[number]['field'];
+
+const KIRO_TEXT_FIELD_NAMES = new Set<KiroTextEditorField>(
+  KIRO_TEXT_FIELD_DEFINITIONS.map((item) => item.field)
+);
+
 export type PrefixProxyEditorField =
   | 'prefix'
   | 'proxyUrl'
@@ -28,7 +53,9 @@ export type PrefixProxyEditorField =
   | 'disableCooling'
   | 'websockets'
   | 'note'
-  | 'headersText';
+  | 'headersText'
+  | 'disabled'
+  | KiroTextEditorField;
 
 export type PrefixProxyEditorFieldValue = string | boolean;
 
@@ -36,6 +63,7 @@ export type PrefixProxyEditorState = {
   fileName: string;
   fileInfoText: string;
   isCodexFile: boolean;
+  isKiroFile: boolean;
   loading: boolean;
   saving: boolean;
   error: string | null;
@@ -53,6 +81,22 @@ export type PrefixProxyEditorState = {
   headersText: string;
   headersTouched: boolean;
   headersError: string | null;
+  accessToken: string;
+  refreshToken: string;
+  profileArn: string;
+  expiresAt: string;
+  authMethod: string;
+  provider: string;
+  clientId: string;
+  clientSecret: string;
+  region: string;
+  apiRegion: string;
+  machineId: string;
+  email: string;
+  subscriptionTitle: string;
+  proxyUsername: string;
+  proxyPassword: string;
+  disabled: boolean;
 };
 
 export type UseAuthFilesPrefixProxyEditorOptions = {
@@ -109,12 +153,89 @@ const parseHeadersText = (
   return { value: parsed as AuthFileHeaders, errorKey: null };
 };
 
+const readStringField = (value: Record<string, unknown>, keys: readonly string[]): string => {
+  for (const key of keys) {
+    const candidate = value[key];
+    if (typeof candidate === 'string') {
+      return candidate;
+    }
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+      return String(candidate);
+    }
+  }
+  return '';
+};
+
+const normalizeBooleanField = (value: unknown): boolean | undefined => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number' && Number.isFinite(value)) return value !== 0;
+  if (typeof value !== 'string') return undefined;
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return undefined;
+  if (normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on') {
+    return true;
+  }
+  if (normalized === 'false' || normalized === '0' || normalized === 'no' || normalized === 'off') {
+    return false;
+  }
+  return undefined;
+};
+
+const setOrDeleteJsonStringField = (
+  value: Record<string, unknown>,
+  jsonKey: string,
+  aliases: readonly string[],
+  nextValue: string
+) => {
+  aliases.forEach((alias) => {
+    delete value[alias];
+  });
+  const trimmed = nextValue.trim();
+  if (trimmed) {
+    value[jsonKey] = nextValue;
+  } else {
+    delete value[jsonKey];
+  }
+};
+
+const normalizeKiroJsonObject = (value: Record<string, unknown>): Record<string, unknown> => {
+  const normalized = { ...value };
+
+  normalized.type = 'kiro';
+  setOrDeleteJsonStringField(
+    normalized,
+    'proxy_url',
+    ['proxyUrl'],
+    readStringField(value, ['proxy_url', 'proxyUrl'])
+  );
+
+  KIRO_TEXT_FIELD_DEFINITIONS.forEach(({ jsonKey, aliases }) => {
+    setOrDeleteJsonStringField(normalized, jsonKey, aliases, readStringField(value, [jsonKey, ...aliases]));
+  });
+
+  const disabledValue = normalizeBooleanField(value.disabled);
+  if (disabledValue === undefined) {
+    delete normalized.disabled;
+  } else {
+    normalized.disabled = disabledValue;
+  }
+
+  return normalized;
+};
+
 const buildPrefixProxyUpdatedText = (
   editor: PrefixProxyEditorState | null,
   resolveHeadersError: (key: AuthFileHeadersErrorKey) => string
 ): string => {
   if (!editor?.json) return editor?.rawText ?? '';
   const next: Record<string, unknown> = { ...editor.json };
+
+  if (editor.isKiroFile) {
+    next.type = 'kiro';
+    delete next.proxyUrl;
+  }
+
   if ('prefix' in next || editor.prefix.trim()) {
     next.prefix = editor.prefix;
   }
@@ -164,6 +285,13 @@ const buildPrefixProxyUpdatedText = (
     }
   }
 
+  if (editor.isKiroFile) {
+    KIRO_TEXT_FIELD_DEFINITIONS.forEach(({ field, jsonKey, aliases }) => {
+      setOrDeleteJsonStringField(next, jsonKey, aliases, editor[field] as string);
+    });
+    next.disabled = editor.disabled;
+  }
+
   return JSON.stringify(
     editor.isCodexFile ? applyCodexAuthFileWebsockets(next, editor.websockets) : next
   );
@@ -204,6 +332,7 @@ export function useAuthFilesPrefixProxyEditor(
       .trim()
       .toLowerCase();
     const isCodexFile = normalizedType === 'codex' || normalizedProvider === 'codex';
+    const isKiroAuthFile = isKiroFile(file);
 
     if (disableControls) return;
     if (prefixProxyEditor?.fileName === name) {
@@ -215,6 +344,7 @@ export function useAuthFilesPrefixProxyEditor(
       fileName: name,
       fileInfoText: JSON.stringify(file, null, 2),
       isCodexFile,
+      isKiroFile: isKiroAuthFile,
       loading: true,
       saving: false,
       error: null,
@@ -232,6 +362,22 @@ export function useAuthFilesPrefixProxyEditor(
       headersText: '',
       headersTouched: false,
       headersError: null,
+      accessToken: '',
+      refreshToken: '',
+      profileArn: '',
+      expiresAt: '',
+      authMethod: '',
+      provider: '',
+      clientId: '',
+      clientSecret: '',
+      region: '',
+      apiRegion: '',
+      machineId: '',
+      email: '',
+      subscriptionTitle: '',
+      proxyUsername: '',
+      proxyPassword: '',
+      disabled: false,
     });
 
     try {
@@ -269,12 +415,16 @@ export function useAuthFilesPrefixProxyEditor(
         return;
       }
 
-      const json = { ...(parsed as Record<string, unknown>) };
+      let json = { ...(parsed as Record<string, unknown>) };
       if (isCodexFile) {
         const normalizedWebsockets = readCodexAuthFileWebsockets(json);
         delete json.websocket;
         json.websockets = normalizedWebsockets;
       }
+      if (isKiroAuthFile) {
+        json = normalizeKiroJsonObject(json);
+      }
+
       const originalText = JSON.stringify(json);
       const prefix = typeof json.prefix === 'string' ? json.prefix : '';
       const proxyUrl = typeof json.proxy_url === 'string' ? json.proxy_url : '';
@@ -313,6 +463,22 @@ export function useAuthFilesPrefixProxyEditor(
           headersTouched: false,
           headersError,
           error: null,
+          accessToken: readStringField(json, ['access_token']),
+          refreshToken: readStringField(json, ['refresh_token']),
+          profileArn: readStringField(json, ['profile_arn']),
+          expiresAt: readStringField(json, ['expires_at']),
+          authMethod: readStringField(json, ['auth_method']),
+          provider: readStringField(json, ['provider']),
+          clientId: readStringField(json, ['client_id']),
+          clientSecret: readStringField(json, ['client_secret']),
+          region: readStringField(json, ['region']),
+          apiRegion: readStringField(json, ['api_region']),
+          machineId: readStringField(json, ['machine_id']),
+          email: readStringField(json, ['email']),
+          subscriptionTitle: readStringField(json, ['subscription_title']),
+          proxyUsername: readStringField(json, ['proxy_username']),
+          proxyPassword: readStringField(json, ['proxy_password']),
+          disabled: normalizeBooleanField(json.disabled) ?? false,
         };
       });
     } catch (err: unknown) {
@@ -337,6 +503,7 @@ export function useAuthFilesPrefixProxyEditor(
       if (field === 'excludedModelsText') return { ...prev, excludedModelsText: String(value) };
       if (field === 'disableCooling') return { ...prev, disableCooling: String(value) };
       if (field === 'note') return { ...prev, note: String(value), noteTouched: true };
+      if (field === 'disabled') return { ...prev, disabled: Boolean(value) };
       if (field === 'headersText') {
         const headersText = String(value);
         const { errorKey } = parseHeadersText(headersText);
@@ -347,7 +514,16 @@ export function useAuthFilesPrefixProxyEditor(
           headersError: errorKey ? t(errorKey) : null,
         };
       }
-      return { ...prev, websockets: Boolean(value) };
+      if (field === 'websockets') {
+        return { ...prev, websockets: Boolean(value) };
+      }
+      if (KIRO_TEXT_FIELD_NAMES.has(field as KiroTextEditorField)) {
+        return {
+          ...prev,
+          [field]: String(value),
+        } as PrefixProxyEditorState;
+      }
+      return prev;
     });
   };
 

@@ -4,7 +4,7 @@
 
 import { apiClient } from './client';
 import type { AuthFilesResponse } from '@/types/authFile';
-import type { OAuthModelAliasEntry } from '@/types';
+import type { KiroBalancePayload, OAuthModelAliasEntry } from '@/types';
 
 type StatusError = { status?: number };
 type AuthFileStatusResponse = { status: string; disabled: boolean };
@@ -449,6 +449,9 @@ export const authFilesApi = {
 
   saveJsonObject: (name: string, json: Record<string, unknown>) =>
     saveAuthFileText(name, JSON.stringify(json)),
+
+  getKiroBalance: (name: string) =>
+    apiClient.get<KiroBalancePayload>(`/auth-files/kiro/balance?name=${encodeURIComponent(name)}`),
 
   // OAuth 排除模型
   async getOauthExcludedModels(): Promise<Record<string, string[]>> {

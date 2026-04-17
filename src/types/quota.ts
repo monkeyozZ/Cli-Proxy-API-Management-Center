@@ -130,6 +130,21 @@ export interface CodexUsagePayload {
   additionalRateLimits?: CodexAdditionalRateLimit[] | null;
 }
 
+export interface KiroBalancePayload {
+  name?: string;
+  subscription_title?: string;
+  subscriptionTitle?: string;
+  current_usage?: number | string;
+  currentUsage?: number | string;
+  usage_limit?: number | string;
+  usageLimit?: number | string;
+  remaining?: number | string;
+  usage_percentage?: number | string;
+  usagePercentage?: number | string;
+  next_reset_at?: number | string | null;
+  nextResetAt?: number | string | null;
+}
+
 // Claude API payload types
 export interface ClaudeUsageWindow {
   utilization: number;
@@ -242,6 +257,18 @@ export interface CodexQuotaState {
   status: 'idle' | 'loading' | 'success' | 'error';
   windows: CodexQuotaWindow[];
   planType?: string | null;
+  error?: string;
+  errorStatus?: number;
+}
+
+export interface KiroQuotaState {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  subscriptionTitle?: string | null;
+  currentUsage: number | null;
+  usageLimit: number | null;
+  remaining: number | null;
+  usagePercentage: number | null;
+  nextResetAt?: number | null;
   error?: string;
   errorStatus?: number;
 }
