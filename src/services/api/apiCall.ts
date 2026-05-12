@@ -15,6 +15,7 @@ export interface ApiCallRequest {
 
 export interface ApiCallResult<T = unknown> {
   statusCode: number;
+  hasStatusCode: boolean;
   header: Record<string, string[]>;
   bodyText: string;
   body: T | null;
@@ -83,12 +84,14 @@ export const apiCallApi = {
     config?: AxiosRequestConfig
   ): Promise<ApiCallResult> => {
     const response = await apiClient.post<Record<string, unknown>>('/api-call', payload, config);
-    const statusCode = Number(response?.status_code ?? response?.statusCode ?? 0);
+    const statusCodeValue = response?.status_code ?? response?.statusCode;
+    const statusCode = Number(statusCodeValue ?? 0);
     const header = (response?.header ?? response?.headers ?? {}) as Record<string, string[]>;
     const { bodyText, body } = normalizeBody(response?.body);
 
     return {
       statusCode,
+      hasStatusCode: statusCodeValue !== undefined && statusCodeValue !== null,
       header,
       bodyText,
       body

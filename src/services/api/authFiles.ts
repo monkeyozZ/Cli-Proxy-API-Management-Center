@@ -1,5 +1,5 @@
 /**
- * 认证文件与 OAuth 排除模型相关 API
+ * Auth files and OAuth excluded model APIs.
  */
 
 import { apiClient } from './client';
@@ -431,6 +431,8 @@ export const authFilesApi = {
 
   deleteFile: (name: string) => authFilesApi.deleteFiles([name]),
 
+  deleteFileByName: (name: string) => authFilesApi.deleteFile(name),
+
   deleteAll: () => apiClient.delete('/auth-files', { params: { all: true } }),
 
   downloadText: async (name: string): Promise<string> => {
@@ -454,7 +456,10 @@ export const authFilesApi = {
   getKiroBalance: (name: string) =>
     apiClient.get<KiroBalancePayload>(`/auth-files/kiro/balance?name=${encodeURIComponent(name)}`),
 
-  // OAuth 排除模型
+  setStatusWithFallback: (name: string, disabled: boolean) =>
+    authFilesApi.setStatus(name, disabled),
+
+  // OAuth excluded models.
   async getOauthExcludedModels(): Promise<Record<string, string[]>> {
     const data = await apiClient.get('/oauth-excluded-models');
     return normalizeOauthExcludedModels(data);
@@ -469,7 +474,7 @@ export const authFilesApi = {
   replaceOauthExcludedModels: (map: Record<string, string[]>) =>
     apiClient.put('/oauth-excluded-models', normalizeOauthExcludedModels(map)),
 
-  // OAuth 模型别名
+  // OAuth model aliases.
   async getOauthModelAlias(): Promise<Record<string, OAuthModelAliasEntry[]>> {
     const data = await apiClient.get(OAUTH_MODEL_ALIAS_ENDPOINT);
     return normalizeOauthModelAlias(data);
@@ -497,7 +502,7 @@ export const authFilesApi = {
     }
   },
 
-  // 获取认证凭证支持的模型
+  // Fetch models supported by an auth credential.
   async getModelsForAuthFile(name: string): Promise<{ id: string; display_name?: string; type?: string; owned_by?: string }[]> {
     const data = await apiClient.get<Record<string, unknown>>(
       `/auth-files/models?name=${encodeURIComponent(name)}`
@@ -508,7 +513,7 @@ export const authFilesApi = {
       : [];
   },
 
-  // 获取指定 channel 的模型定义
+  // Fetch model definitions for a specific channel.
   async getModelDefinitions(channel: string): Promise<{ id: string; display_name?: string; type?: string; owned_by?: string }[]> {
     const normalizedChannel = String(channel ?? '').trim().toLowerCase();
     if (!normalizedChannel) return [];

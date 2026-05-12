@@ -23,6 +23,7 @@ interface SelectProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  triggerClassName?: string;
   disabled?: boolean;
   ariaLabel?: string;
   ariaLabelledBy?: string;
@@ -82,6 +83,7 @@ export function Select({
   onChange,
   placeholder,
   className,
+  triggerClassName,
   disabled = false,
   ariaLabel,
   ariaLabelledBy,
@@ -301,7 +303,7 @@ export function Select({
         <button
           id={selectId}
           type="button"
-          className={styles.trigger}
+          className={[styles.trigger, triggerClassName].filter(Boolean).join(' ')}
           onClick={disabled ? undefined : () => setOpen((prev) => !prev)}
           onKeyDown={handleKeyDown}
           aria-haspopup="listbox"
