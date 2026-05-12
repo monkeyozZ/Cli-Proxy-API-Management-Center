@@ -70,7 +70,7 @@ jobs:
 
           echo "has_changes=true" >> "${GITHUB_OUTPUT}"
 
-      - name: Check protected Kiro paths
+      - name: Check protected custom paths
         if: steps.merge.outputs.has_changes == 'true'
         id: guard
         env:
@@ -122,6 +122,84 @@ jobs:
             echo "protected_hit=false" >> "${GITHUB_OUTPUT}"
           fi
 
+          : > usage_guarded_files.txt
+          while IFS= read -r pattern; do
+            [ -z "${pattern}" ] && continue
+            git diff --name-only "origin/${DEFAULT_BRANCH}...HEAD" -- "${pattern}" >> usage_guarded_files.txt || true
+          done <<'EOF'
+          src/pages/MonitoringCenterPage.tsx
+          src/pages/MonitoringCenterPage.module.scss
+          src/pages/SystemPage.tsx
+          src/pages/SystemPage.module.scss
+          src/router/MainRoutes.tsx
+          :(glob)src/features/monitoring/**
+          :(glob)src/components/usage/**
+          src/services/api/usage.ts
+          src/services/api/usageService.ts
+          src/stores/useUsageStatsStore.ts
+          src/stores/useUsageServiceStore.ts
+          src/utils/usage.ts
+          :(glob)src/utils/usage/**
+          src/i18n/locales/en.json
+          src/i18n/locales/ru.json
+          src/i18n/locales/zh-CN.json
+          src/i18n/locales/zh-TW.json
+          EOF
+
+          sort -u usage_guarded_files.txt -o usage_guarded_files.txt
+          if [ -s usage_guarded_files.txt ]; then
+            echo "usage_protected_hit=true" >> "${GITHUB_OUTPUT}"
+            {
+              echo "usage_guarded_files<<EOF"
+              cat usage_guarded_files.txt
+              echo "EOF"
+            } >> "${GITHUB_OUTPUT}"
+          else
+            echo "usage_protected_hit=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+          : > usage_validation_files.txt
+          while IFS= read -r pattern; do
+            [ -z "${pattern}" ] && continue
+            git diff --name-only "origin/${DEFAULT_BRANCH}...HEAD" -- "${pattern}" >> usage_validation_files.txt || true
+          done <<'EOF'
+          src/pages/MonitoringCenterPage.tsx
+          src/pages/MonitoringCenterPage.module.scss
+          src/pages/SystemPage.tsx
+          src/pages/SystemPage.module.scss
+          src/router/MainRoutes.tsx
+          :(glob)src/features/monitoring/**
+          :(glob)src/components/usage/**
+          src/services/api/usage.ts
+          src/services/api/usageService.ts
+          src/services/api/client.ts
+          src/stores/useUsageStatsStore.ts
+          src/stores/useUsageServiceStore.ts
+          src/utils/usage.ts
+          :(glob)src/utils/usage/**
+          src/i18n/locales/en.json
+          src/i18n/locales/ru.json
+          src/i18n/locales/zh-CN.json
+          src/i18n/locales/zh-TW.json
+          package.json
+          package-lock.json
+          tsconfig.json
+          tsconfig.app.json
+          vite.config.ts
+          EOF
+
+          sort -u usage_validation_files.txt -o usage_validation_files.txt
+          if [ -s usage_validation_files.txt ]; then
+            echo "usage_validation_hit=true" >> "${GITHUB_OUTPUT}"
+            {
+              echo "usage_validation_files<<EOF"
+              cat usage_validation_files.txt
+              echo "EOF"
+            } >> "${GITHUB_OUTPUT}"
+          else
+            echo "usage_validation_hit=false" >> "${GITHUB_OUTPUT}"
+          fi
+
       - name: Push sync branch
         if: steps.merge.outputs.has_changes == 'true'
         run: |
@@ -135,13 +213,21 @@ jobs:
           TARGET_REPO: ${{ github.repository }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           PROTECTED_HIT: ${{ steps.guard.outputs.protected_hit }}
+          USAGE_PROTECTED_HIT: ${{ steps.guard.outputs.usage_protected_hit }}
+          USAGE_VALIDATION_HIT: ${{ steps.guard.outputs.usage_validation_hit }}
           GUARDED_FILES: ${{ steps.guard.outputs.guarded_files }}
+          USAGE_GUARDED_FILES: ${{ steps.guard.outputs.usage_guarded_files }}
+          USAGE_VALIDATION_FILES: ${{ steps.guard.outputs.usage_validation_files }}
           CHANGED_FILES: ${{ steps.guard.outputs.changed_files }}
         run: |
           set -euo pipefail
 
-          if [ "${PROTECTED_HIT}" = "true" ]; then
+          if [ "${PROTECTED_HIT}" = "true" ] && [ "${USAGE_PROTECTED_HIT}" = "true" ]; then
+            PR_TITLE="chore: sync upstream changes [manual Kiro/usage review required]"
+          elif [ "${PROTECTED_HIT}" = "true" ]; then
             PR_TITLE="chore: sync upstream changes [manual Kiro review required]"
+          elif [ "${USAGE_PROTECTED_HIT}" = "true" ]; then
+            PR_TITLE="chore: sync upstream changes [manual usage review required]"
           else
             PR_TITLE="chore: sync upstream changes"
           fi
@@ -152,6 +238,8 @@ jobs:
           - Base branch: \`${DEFAULT_BRANCH}\`
           - Upstream branch: \`${UPSTREAM_BRANCH}\`
           - Protected Kiro paths changed: **${PROTECTED_HIT}**
+          - CPA-Manager usage paths changed: **${USAGE_PROTECTED_HIT}**
+          - CPA-Manager usage validation required: **${USAGE_VALIDATION_HIT}**
 
           Changed files:
           \`\`\`
@@ -171,6 +259,28 @@ jobs:
           EOF
           fi
 
+          if [ "${USAGE_PROTECTED_HIT}" = "true" ]; then
+            cat >> pr-body.md <<EOF
+
+          CPA-Manager/usage files that require manual review:
+          \`\`\`
+          ${USAGE_GUARDED_FILES}
+          \`\`\`
+
+          This PR must not be merged blindly because it touches monitoring or Usage Service integration.
+          EOF
+          fi
+
+          if [ "${USAGE_VALIDATION_HIT}" = "true" ]; then
+            cat >> pr-body.md <<EOF
+
+          CPA-Manager usage targeted validation paths:
+          \`\`\`
+          ${USAGE_VALIDATION_FILES}
+          \`\`\`
+          EOF
+          fi
+
           pr_number="$(gh pr list --repo "${TARGET_REPO}" --base "${DEFAULT_BRANCH}" --head "${SYNC_BRANCH}" --state open --json number --jq '.[0].number // empty')"
           if [ -n "${pr_number}" ]; then
             gh pr edit "${pr_number}" --repo "${TARGET_REPO}" --title "${PR_TITLE}" --body-file pr-body.md
@@ -178,14 +288,67 @@ jobs:
             gh pr create --repo "${TARGET_REPO}" --base "${DEFAULT_BRANCH}" --head "${SYNC_BRANCH}" --title "${PR_TITLE}" --body-file pr-body.md
           fi
 
-      - name: Block automatic progression on protected paths
-        if: steps.merge.outputs.has_changes == 'true' && steps.guard.outputs.protected_hit == 'true'
+      - name: Set up Node for usage targeted validation
+        if: steps.merge.outputs.has_changes == 'true' && steps.guard.outputs.usage_validation_hit == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies for usage targeted validation
+        if: steps.merge.outputs.has_changes == 'true' && steps.guard.outputs.usage_validation_hit == 'true'
+        run: npm ci
+
+      - name: Run CPA-Manager usage targeted validation
+        if: steps.merge.outputs.has_changes == 'true' && steps.guard.outputs.usage_validation_hit == 'true'
+        id: usage_validate
+        run: bash scripts/run_usage_targeted_checks.sh
+
+      - name: Summarize CPA-Manager usage targeted validation
+        if: always() && steps.merge.outputs.has_changes == 'true' && steps.guard.outputs.usage_validation_hit == 'true'
+        env:
+          VALIDATION_FILES: ${{ steps.guard.outputs.usage_validation_files }}
+          VALIDATION_OUTCOME: ${{ steps.usage_validate.outcome }}
         run: |
           set -euo pipefail
           {
-            echo "## Kiro path guard triggered"
+            echo "## CPA-Manager usage targeted validation"
             echo
-            echo "The sync PR was created or updated, but protected Kiro-related files changed."
+            echo "Outcome: \`${VALIDATION_OUTCOME}\`"
+            echo
+            echo "Triggered by these files:"
+            echo "\`\`\`"
+            echo "${VALIDATION_FILES}"
+            echo "\`\`\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Block automatic progression on protected paths
+        if: steps.merge.outputs.has_changes == 'true' && (steps.guard.outputs.protected_hit == 'true' || steps.guard.outputs.usage_protected_hit == 'true')
+        env:
+          KIRO_PROTECTED_HIT: ${{ steps.guard.outputs.protected_hit }}
+          USAGE_PROTECTED_HIT: ${{ steps.guard.outputs.usage_protected_hit }}
+          KIRO_GUARDED_FILES: ${{ steps.guard.outputs.guarded_files }}
+          USAGE_GUARDED_FILES: ${{ steps.guard.outputs.usage_guarded_files }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Protected path guard triggered"
+            echo
+            echo "The sync PR was created or updated, but protected custom files changed."
             echo "Manual review is required before any merge."
+            if [ "${KIRO_PROTECTED_HIT}" = "true" ]; then
+              echo
+              echo "Kiro guarded files:"
+              echo "\`\`\`"
+              echo "${KIRO_GUARDED_FILES}"
+              echo "\`\`\`"
+            fi
+            if [ "${USAGE_PROTECTED_HIT}" = "true" ]; then
+              echo
+              echo "CPA-Manager usage guarded files:"
+              echo "\`\`\`"
+              echo "${USAGE_GUARDED_FILES}"
+              echo "\`\`\`"
+            fi
           } >> "${GITHUB_STEP_SUMMARY}"
           exit 1

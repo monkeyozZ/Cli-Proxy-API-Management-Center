@@ -11,7 +11,7 @@ import {
 } from '@/services/api/usageService';
 import { useAuthStore, useUsageServiceStore } from '@/stores';
 import { detectApiBaseFromLocation } from '@/utils/connection';
-import { loadModelPrices, saveModelPrices, type ModelPrice } from '@/utils/usage';
+import { clearModelPrices, loadModelPrices, saveModelPrices, type ModelPrice } from '@/utils/usage';
 
 export interface UsagePayload {
   total_requests?: number;
@@ -129,13 +129,13 @@ export function useUsageData(): UseUsageDataReturn {
       const apiPrices = response.prices ?? {};
       if (Object.keys(apiPrices).length > 0) {
         setModelPricesState(apiPrices);
-        saveModelPrices({});
+        clearModelPrices();
         return;
       }
       if (Object.keys(fallbackPrices).length > 0) {
         const migrated = await saveModelPricesToApi(fallbackPrices);
         setModelPricesState(migrated.prices ?? fallbackPrices);
-        saveModelPrices({});
+        clearModelPrices();
         return;
       }
       setModelPricesState({});
@@ -178,7 +178,7 @@ export function useUsageData(): UseUsageDataReturn {
     try {
       const response = await saveModelPricesToApi(prices);
       setModelPricesState(response.prices ?? prices);
-      saveModelPrices({});
+      clearModelPrices();
     } catch {
       saveModelPrices(prices);
     }
@@ -187,7 +187,7 @@ export function useUsageData(): UseUsageDataReturn {
   const syncModelPrices = useCallback(async (models?: string[]) => {
     const response = await syncModelPricesFromApi(models);
     setModelPricesState(response.prices ?? {});
-    saveModelPrices({});
+    clearModelPrices();
     return response;
   }, [syncModelPricesFromApi]);
 
