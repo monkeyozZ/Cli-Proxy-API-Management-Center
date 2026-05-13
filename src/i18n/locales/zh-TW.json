@@ -688,6 +688,7 @@
     "code_review_secondary_window": "程式碼審查週限額",
     "additional_primary_window": "{{name}} 5 小時限額",
     "additional_secondary_window": "{{name}} 週限額",
+    "window_usage": "已用 {{used}} / {{total}} 小時",
     "plan_label": "方案",
     "plan_plus": "Plus",
     "plan_team": "Team",
@@ -732,6 +733,20 @@
     "limit_window": "{{duration}} 限額",
     "limit_index": "限額 #{{index}}",
     "reset_hint": "{{hint}} 後重置"
+  },
+  "kiro_quota": {
+    "title": "Kiro 配額",
+    "empty_title": "暫無 Kiro 驗證",
+    "empty_desc": "上傳 Kiro 驗證檔案後即可查看餘額。",
+    "idle": "點擊此處重新整理餘額",
+    "loading": "正在載入餘額...",
+    "load_failed": "餘額取得失敗：{{message}}",
+    "refresh_button": "重新整理配額",
+    "empty_data": "暫無餘額資料",
+    "plan_label": "方案",
+    "plan_unknown": "未知方案",
+    "balance_label": "剩餘配額",
+    "usage_label": "已用 / 總配額"
   },
   "vertex_import": {
     "title": "Vertex JSON 登入",
@@ -1827,7 +1842,8 @@
     "codex_inspection_sampled_meta_running": "共 {{total}} 個 · {{percent}}%",
     "codex_inspection_sampled_meta_done": "共 {{total}} 個 · 已完成",
     "codex_inspection_sampled_meta_idle": "等待開始",
-    "account_quota_empty": "目前帳號沒有可查詢的 Codex 配額。",
+    "account_quota_title": "帳號配額",
+    "account_quota_empty": "目前帳號沒有可查詢的配額。",
     "account_quota_reset_at": "重置時間",
     "realtime_table_title": "即時監控表",
     "realtime_table_desc": "按單次呼叫日誌即時展示模型、渠道、狀態、耗時、用量與花費，持續追蹤請求波動。",

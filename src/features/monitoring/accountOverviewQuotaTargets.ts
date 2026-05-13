@@ -1,6 +1,7 @@
 import type { AuthFileItem } from '@/types';
 import {
   isCodexFile,
+  isKiroFile,
   normalizeAuthIndex,
   resolveCodexChatgptAccountId,
   resolveCodexPlanType,
@@ -9,8 +10,9 @@ import type { MonitoringAccountAuthState } from './accountOverviewState';
 import type { MonitoringAccountRow } from './hooks/useMonitoringData';
 
 export type MonitoringAccountQuotaTarget = {
+  providerType: 'codex' | 'kiro';
   key: string;
-  authIndex: string;
+  authIndex: string | null;
   authLabel: string;
   fileName: string;
   accountId: string | null;
@@ -42,18 +44,23 @@ export const buildMonitoringAccountQuotaTargetsByAccount = (
 
       authState?.files.forEach((file) => {
         const authIndex = normalizeAuthIndex(file['auth_index'] ?? file.authIndex);
-        if (!authIndex || !isCodexFile(file)) return;
+        const isCodex = isCodexFile(file);
+        const isKiro = isKiroFile(file);
+        if (!isCodex && !isKiro) return;
+        if (isCodex && !authIndex) return;
 
-        const dedupeKey = `${authIndex}::${file.name}`;
+        const providerType = isKiro ? 'kiro' : 'codex';
+        const dedupeKey = `${providerType}::${authIndex || file.name}::${file.name}`;
         if (bucket.has(dedupeKey)) return;
 
         bucket.set(dedupeKey, {
+          providerType,
           key: dedupeKey,
-          authIndex,
-          authLabel: readAuthFileQuotaLabel(file, authIndex),
+          authIndex: authIndex || null,
+          authLabel: readAuthFileQuotaLabel(file, authIndex || file.name),
           fileName: file.name,
-          accountId: resolveCodexChatgptAccountId(file),
-          planType: resolveCodexPlanType(file),
+          accountId: isCodex ? resolveCodexChatgptAccountId(file) : null,
+          planType: isCodex ? resolveCodexPlanType(file) : null,
         });
       });
 

@@ -98,8 +98,10 @@ import {
   CODEX_REQUEST_HEADERS,
   CODEX_USAGE_URL,
   formatCodexResetLabel,
+  formatUnixSeconds,
   normalizeNumberValue,
   normalizePlanType,
+  normalizeStringValue,
   parseCodexUsagePayload,
 } from '@/utils/quota';
 import {
@@ -209,18 +211,28 @@ type AccountQuotaWindow = {
   usageLabel: string | null;
 };
 
+type AccountQuotaProviderType = MonitoringAccountQuotaTarget['providerType'];
+
 type AccountQuotaEntry = {
+  providerType: AccountQuotaProviderType;
   key: string;
   authLabel: string;
   fileName: string;
   planType: string | null;
   windows: AccountQuotaWindow[];
+  subscriptionTitle?: string | null;
+  currentUsage?: number | null;
+  usageLimit?: number | null;
+  remaining?: number | null;
+  usagePercentage?: number | null;
+  nextResetAt?: number | null;
   error?: string;
 };
 
 type AccountQuotaState = {
   status: 'idle' | 'loading' | 'success' | 'error';
   targetKey: string;
+  providerType: AccountQuotaProviderType | 'mixed' | null;
   entries: AccountQuotaEntry[];
   error?: string;
   lastRefreshedAt?: number;
@@ -338,6 +350,39 @@ const getCodexPlanLabel = (planType: string | null | undefined, t: TFunction): s
   if (normalized === 'team') return t('codex_quota.plan_team');
   if (normalized === 'free') return t('codex_quota.plan_free');
   return planType || normalized;
+};
+
+const getAccountQuotaProviderType = (
+  targets: MonitoringAccountQuotaTarget[]
+): AccountQuotaState['providerType'] => {
+  const providers = new Set<AccountQuotaProviderType>(targets.map((target) => target.providerType));
+  if (providers.size === 0) return null;
+  if (providers.size > 1) return 'mixed';
+  return Array.from(providers)[0] ?? null;
+};
+
+const getAccountQuotaEntryProviderType = (
+  entries: AccountQuotaEntry[]
+): AccountQuotaState['providerType'] => {
+  const providers = new Set<AccountQuotaProviderType>(entries.map((entry) => entry.providerType));
+  if (providers.size === 0) return null;
+  if (providers.size > 1) return 'mixed';
+  return Array.from(providers)[0] ?? null;
+};
+
+const getAccountQuotaTitleKey = (providerType: AccountQuotaState['providerType']) => {
+  if (providerType === 'kiro') return 'kiro_quota.title';
+  if (providerType === 'codex') return 'codex_quota.title';
+  return 'monitoring.account_quota_title';
+};
+
+const getAccountQuotaRefreshKey = (providerType: AccountQuotaState['providerType']) =>
+  providerType === 'kiro' ? 'kiro_quota.refresh_button' : 'codex_quota.refresh_button';
+
+const formatQuotaAmount = (value: number | null | undefined): string => {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '--';
+  const maximumFractionDigits = Number.isInteger(value) ? 0 : 2;
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits }).format(value);
 };
 
 const buildAccountSecondaryText = (row: MonitoringAccountRow) => {
@@ -579,6 +624,29 @@ const requestAccountQuota = async (
   target: MonitoringAccountQuotaTarget,
   t: TFunction
 ): Promise<AccountQuotaEntry> => {
+  if (target.providerType === 'kiro') {
+    const payload = await authFilesApi.getKiroBalance(target.fileName);
+    return {
+      providerType: 'kiro',
+      key: target.key,
+      authLabel: target.authLabel,
+      fileName: target.fileName,
+      planType: null,
+      windows: [],
+      subscriptionTitle: normalizeStringValue(
+        payload.subscription_title ?? payload.subscriptionTitle
+      ),
+      currentUsage: normalizeNumberValue(payload.current_usage ?? payload.currentUsage),
+      usageLimit: normalizeNumberValue(payload.usage_limit ?? payload.usageLimit),
+      remaining: normalizeNumberValue(payload.remaining),
+      usagePercentage: normalizeNumberValue(payload.usage_percentage ?? payload.usagePercentage),
+      nextResetAt: normalizeNumberValue(payload.next_reset_at ?? payload.nextResetAt),
+    };
+  }
+
+  if (!target.authIndex) {
+    throw new Error(t('codex_quota.missing_auth_index'));
+  }
   if (!target.accountId) {
     throw new Error(t('codex_quota.missing_account_id'));
   }
@@ -603,6 +671,7 @@ const requestAccountQuota = async (
   }
 
   return {
+    providerType: 'codex',
     key: target.key,
     authLabel: target.authLabel,
     fileName: target.fileName,
@@ -1131,33 +1200,24 @@ function AccountSummaryPrimary({
   onToggle,
   statusTone = 'enabled',
   showSecondary = true,
+  expandable = true,
 }: {
   row: MonitoringAccountRow;
   expanded: boolean;
   onToggle: () => void;
   statusTone?: string;
   showSecondary?: boolean;
+  expandable?: boolean;
 }) {
   const secondaryText = buildAccountSecondaryText(row);
   const accountLabel = row.displayAccount || row.account;
-
-  return (
-    <button
-      type="button"
-      className={[
-        styles.accountButton,
-        expanded ? styles.expandedAccountButton : '',
-        statusTone === 'disabled' || statusTone === 'unavailable' ? styles.accountButtonMuted : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-      onClick={onToggle}
-      aria-expanded={expanded}
-      title={accountLabel}
-    >
-      <span className={styles.accountExpandGlyph} aria-hidden="true">
-        {expanded ? <IconChevronUp size={15} /> : <IconChevronDown size={15} />}
-      </span>
+  const content = (
+    <>
+      {expandable ? (
+        <span className={styles.accountExpandGlyph} aria-hidden="true">
+          {expanded ? <IconChevronUp size={15} /> : <IconChevronDown size={15} />}
+        </span>
+      ) : null}
       <span className={styles.accountIdentityLine}>
         <span
           className={[styles.accountStatusDot, getAccountStatusDotClassName(statusTone)]
@@ -1168,6 +1228,35 @@ function AccountSummaryPrimary({
         <span className={styles.accountButtonLabel}>{accountLabel}</span>
       </span>
       {showSecondary && secondaryText ? <small>{secondaryText}</small> : null}
+    </>
+  );
+
+  const className = [
+    styles.accountButton,
+    expandable ? '' : styles.accountButtonStatic,
+    expanded ? styles.expandedAccountButton : '',
+    statusTone === 'disabled' || statusTone === 'unavailable' ? styles.accountButtonMuted : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  if (!expandable) {
+    return (
+      <div className={className} title={accountLabel}>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={className}
+      onClick={onToggle}
+      aria-expanded={expanded}
+      title={accountLabel}
+    >
+      {content}
     </button>
   );
 }
@@ -1185,14 +1274,22 @@ function AccountQuotaPanel({
 }) {
   const quotaEntries = quotaState?.entries ?? [];
   const quotaLoading = quotaState?.status === 'loading';
+  const providerType = quotaState?.providerType ?? getAccountQuotaEntryProviderType(quotaEntries);
   const lastQuotaSync =
     quotaState?.lastRefreshedAt && Number.isFinite(quotaState.lastRefreshedAt)
       ? new Date(quotaState.lastRefreshedAt).toLocaleString(locale)
       : '';
   const singleQuotaEntry = quotaEntries.length === 1 ? quotaEntries[0] : null;
-  const singlePlanLabel = singleQuotaEntry ? getCodexPlanLabel(singleQuotaEntry.planType, t) : null;
+  const singlePlanLabel =
+    singleQuotaEntry?.providerType === 'kiro'
+      ? (singleQuotaEntry.subscriptionTitle ?? t('kiro_quota.plan_unknown'))
+      : singleQuotaEntry
+        ? getCodexPlanLabel(singleQuotaEntry.planType, t)
+        : null;
+  const planLabelKey =
+    singleQuotaEntry?.providerType === 'kiro' ? 'kiro_quota.plan_label' : 'codex_quota.plan_label';
   const quotaMetaText = [
-    singlePlanLabel ? `${t('codex_quota.plan_label')}: ${singlePlanLabel}` : '',
+    singlePlanLabel ? `${t(planLabelKey)}: ${singlePlanLabel}` : '',
     lastQuotaSync ? `${t('monitoring.last_sync')}: ${lastQuotaSync}` : '',
   ]
     .filter(Boolean)
@@ -1227,6 +1324,65 @@ function AccountQuotaPanel({
     </div>
   );
 
+  const renderKiroQuota = (entry: AccountQuotaEntry) => {
+    const hasData =
+      entry.subscriptionTitle != null ||
+      entry.currentUsage != null ||
+      entry.usageLimit != null ||
+      entry.remaining != null;
+    if (!hasData) {
+      return renderStateMessage(t('kiro_quota.empty_data'), t('kiro_quota.idle'));
+    }
+
+    const remainingPercent =
+      entry.usagePercentage != null
+        ? Math.max(0, Math.min(100, 100 - entry.usagePercentage))
+        : entry.remaining != null && entry.usageLimit != null && entry.usageLimit > 0
+          ? Math.max(0, Math.min(100, (entry.remaining / entry.usageLimit) * 100))
+          : null;
+    const percentLabel = remainingPercent === null ? '--' : `${Math.round(remainingPercent)}%`;
+    const barStyle =
+      remainingPercent === null
+        ? undefined
+        : { width: `${Math.max(0, Math.min(100, remainingPercent))}%` };
+    const resetLabel =
+      entry.nextResetAt != null && entry.nextResetAt > 0 ? formatUnixSeconds(entry.nextResetAt) : '';
+    const planLabel = entry.subscriptionTitle ?? t('kiro_quota.plan_unknown');
+    const usageLabel = `${formatQuotaAmount(entry.currentUsage)} / ${formatQuotaAmount(entry.usageLimit)}`;
+
+    return (
+      <div className={styles.quotaWindowList}>
+        <div className={styles.quotaWindowRow}>
+          <div className={styles.quotaWindowHeader}>
+            <span>{t('kiro_quota.plan_label')}</span>
+            <strong>{planLabel}</strong>
+          </div>
+        </div>
+        <div className={styles.quotaWindowRow}>
+          <div className={styles.quotaWindowHeader}>
+            <span>{t('kiro_quota.balance_label')}</span>
+            <strong>{formatQuotaAmount(entry.remaining)}</strong>
+          </div>
+          <div className={styles.quotaProgressTrack}>
+            <span className={styles.quotaProgressBar} style={barStyle} />
+          </div>
+          <div className={styles.quotaWindowMeta}>
+            <small>{percentLabel}</small>
+            {resetLabel ? (
+              <small>{`${t('monitoring.account_quota_reset_at')}: ${resetLabel}`}</small>
+            ) : null}
+          </div>
+        </div>
+        <div className={styles.quotaWindowRow}>
+          <div className={styles.quotaWindowHeader}>
+            <span>{t('kiro_quota.usage_label')}</span>
+            <strong>{usageLabel}</strong>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderRefreshButton = () => (
     <button
       type="button"
@@ -1238,7 +1394,7 @@ function AccountQuotaPanel({
         size={14}
         className={quotaLoading ? styles.refreshIconSpinning : styles.refreshIcon}
       />
-      <span>{t('codex_quota.refresh_button')}</span>
+      <span>{t(getAccountQuotaRefreshKey(providerType))}</span>
     </button>
   );
 
@@ -1253,7 +1409,7 @@ function AccountQuotaPanel({
     <section className={styles.quotaSection}>
       <div className={styles.quotaSectionHeader}>
         <div className={styles.quotaSectionTitleGroup}>
-          <strong>{t('codex_quota.title')}</strong>
+          <strong>{t(getAccountQuotaTitleKey(providerType))}</strong>
           {quotaMetaText ? <span>{quotaMetaText}</span> : null}
         </div>
         {renderRefreshButton()}
@@ -1272,16 +1428,25 @@ function AccountQuotaPanel({
         : null}
 
       {!quotaLoading && quotaState?.status === 'success' && quotaEntries.length === 0
-        ? renderStateMessage(t('codex_quota.empty_windows'), t('codex_quota.idle'))
+        ? renderStateMessage(t('monitoring.account_quota_empty'))
         : null}
 
       {!quotaState && quotaEntries.length === 0
-        ? renderStateMessage(t('codex_quota.empty_windows'), t('codex_quota.idle'))
+        ? renderStateMessage(t('monitoring.account_quota_empty'))
         : null}
 
       {singleQuotaEntry ? (
         singleQuotaEntry.error ? (
-          renderStateMessage(t('codex_quota.load_failed', { message: singleQuotaEntry.error }))
+          renderStateMessage(
+            t(
+              singleQuotaEntry.providerType === 'kiro'
+                ? 'kiro_quota.load_failed'
+                : 'codex_quota.load_failed',
+              { message: singleQuotaEntry.error }
+            )
+          )
+        ) : singleQuotaEntry.providerType === 'kiro' ? (
+          renderKiroQuota(singleQuotaEntry)
         ) : singleQuotaEntry.windows.length > 0 ? (
           renderQuotaWindows(singleQuotaEntry.windows)
         ) : (
@@ -1290,21 +1455,37 @@ function AccountQuotaPanel({
       ) : quotaEntries.length > 0 ? (
         <div className={styles.quotaEntryGrid}>
           {quotaEntries.map((entry) => {
-            const planLabel = getCodexPlanLabel(entry.planType, t);
+            const planLabel =
+              entry.providerType === 'kiro'
+                ? (entry.subscriptionTitle ?? t('kiro_quota.plan_unknown'))
+                : getCodexPlanLabel(entry.planType, t);
+            const planLabelKey =
+              entry.providerType === 'kiro'
+                ? 'kiro_quota.plan_label'
+                : 'codex_quota.plan_label';
             return (
               <div key={entry.key} className={styles.quotaEntryCard}>
                 <div className={styles.quotaEntryHeader}>
                   <div className={styles.quotaEntryMain}>
                     <strong>{entry.authLabel}</strong>
                     <small>
-                      {planLabel ? `${t('codex_quota.plan_label')}: ${planLabel}` : entry.fileName}
+                      {planLabel ? `${t(planLabelKey)}: ${planLabel}` : entry.fileName}
                     </small>
                   </div>
                 </div>
 
                 {entry.error
-                  ? renderStateMessage(t('codex_quota.load_failed', { message: entry.error }))
-                  : entry.windows.length > 0
+                  ? renderStateMessage(
+                      t(
+                        entry.providerType === 'kiro'
+                          ? 'kiro_quota.load_failed'
+                          : 'codex_quota.load_failed',
+                        { message: entry.error }
+                      )
+                    )
+                  : entry.providerType === 'kiro'
+                    ? renderKiroQuota(entry)
+                    : entry.windows.length > 0
                     ? renderQuotaWindows(entry.windows)
                     : renderStateMessage(t('codex_quota.empty_windows'), t('codex_quota.idle'))}
               </div>
@@ -1741,32 +1922,24 @@ export function AccountOverviewCard({
   hasPrices,
   locale,
   t,
-  isExpanded,
   isFocused,
   statusData,
   scopeText,
-  quotaState,
   statusUpdating,
-  onToggle,
   onFocus,
   onToggleEnabled,
-  onRefreshQuota,
 }: {
   row: MonitoringAccountRow;
   authState: MonitoringAccountAuthState;
   hasPrices: boolean;
   locale: string;
   t: TFunction;
-  isExpanded: boolean;
   isFocused: boolean;
   statusData: StatusBarData;
   scopeText: string;
-  quotaState?: AccountQuotaState;
   statusUpdating: boolean;
-  onToggle: () => void;
   onFocus: () => void;
   onToggleEnabled: (enabled: boolean) => void;
-  onRefreshQuota: () => void;
 }) {
   const summaryMetrics = buildAccountSummaryMetrics(row, hasPrices, locale, t);
   const cardMetrics = sortAccountOverviewCardMetrics(summaryMetrics);
@@ -1780,7 +1953,6 @@ export function AccountOverviewCard({
     <Card
       className={[
         styles.accountOverviewCard,
-        isExpanded ? styles.accountOverviewCardExpanded : '',
         isFocused ? styles.accountOverviewCardFocused : '',
         authState.enabledState === 'disabled' ? styles.accountOverviewCardDisabled : '',
       ]
@@ -1791,10 +1963,11 @@ export function AccountOverviewCard({
         <div className={styles.accountTitleRow}>
           <AccountSummaryPrimary
             row={row}
-            expanded={isExpanded}
-            onToggle={onToggle}
+            expanded={false}
+            onToggle={() => undefined}
             statusTone={statusTone}
             showSecondary={false}
+            expandable={false}
           />
           <div className={styles.accountEnabledControl}>
             <span className={styles.accountEnabledLabel}>
@@ -1862,19 +2035,6 @@ export function AccountOverviewCard({
       />
 
       <AccountTokenMetricGrid metrics={cardMetrics} t={t} />
-
-      {isExpanded ? (
-        <AccountExpandedDetails
-          row={row}
-          hasPrices={hasPrices}
-          locale={locale}
-          t={t}
-          summaryMetrics={summaryMetrics}
-          quotaState={quotaState}
-          onRefreshQuota={onRefreshQuota}
-          variant="card"
-        />
-      ) : null}
     </Card>
   );
 }
@@ -2472,6 +2632,7 @@ export function MonitoringCenterPage() {
     async (account: string, force: boolean = false) => {
       const currentState = accountQuotaStatesRef.current[account];
       const targets = accountQuotaTargetsByAccount.get(account) ?? [];
+      const providerType = getAccountQuotaProviderType(targets);
       const targetKey = targets.map((target) => target.key).join('|');
       if (
         !force &&
@@ -2490,6 +2651,7 @@ export function MonitoringCenterPage() {
         [account]: {
           status: 'loading',
           targetKey,
+          providerType,
           entries:
             previous[account]?.targetKey === targetKey ? (previous[account]?.entries ?? []) : [],
           lastRefreshedAt: previous[account]?.lastRefreshedAt,
@@ -2503,6 +2665,7 @@ export function MonitoringCenterPage() {
           [account]: {
             status: 'success',
             targetKey,
+            providerType,
             entries: [],
             lastRefreshedAt: Date.now(),
           },
@@ -2526,6 +2689,7 @@ export function MonitoringCenterPage() {
             ? result.reason.message
             : String(result.reason || t('common.unknown_error'));
         return {
+          providerType: fallback.providerType,
           key: fallback.key,
           authLabel: fallback.authLabel,
           fileName: fallback.fileName,
@@ -2541,6 +2705,7 @@ export function MonitoringCenterPage() {
         [account]: {
           status: hasSuccess ? 'success' : 'error',
           targetKey,
+          providerType,
           entries,
           error: hasSuccess ? '' : entries[0]?.error || t('common.unknown_error'),
           lastRefreshedAt: Date.now(),
@@ -3411,16 +3576,12 @@ export function MonitoringCenterPage() {
                   hasPrices={hasPrices}
                   locale={i18n.language}
                   t={t}
-                  isExpanded={Boolean(expandedAccounts[row.id])}
                   isFocused={focusedAccount === row.account}
                   statusData={accountStatusDataByRowId.get(row.id) ?? emptyAccountStatusData}
                   scopeText={accountOverviewScopeText}
-                  quotaState={accountQuotaStates[row.account]}
                   statusUpdating={accountStatusUpdating[row.id] === true}
-                  onToggle={() => toggleAccountExpanded(row.id, row.account)}
                   onFocus={() => focusAccount(row.account)}
                   onToggleEnabled={(enabled) => void handleAccountStatusToggle(row, enabled)}
-                  onRefreshQuota={() => void loadAccountQuota(row.account, true)}
                 />
               );
             })}

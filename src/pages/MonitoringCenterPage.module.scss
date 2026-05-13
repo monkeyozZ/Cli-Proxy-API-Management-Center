@@ -1582,6 +1582,11 @@
   white-space: normal;
 }
 
+.accountButtonStatic {
+  grid-template-columns: minmax(0, 1fr);
+  cursor: default;
+}
+
 .accountExpandGlyph {
   display: inline-flex;
   width: 18px;
@@ -1602,6 +1607,10 @@
 .accountButton:hover {
   transform: none;
   color: var(--monitor-accent-strong);
+}
+
+.accountButtonStatic:hover {
+  color: inherit;
 }
 
 .accountButton:focus,
@@ -1631,6 +1640,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.accountButtonStatic small {
+  grid-column: 1;
 }
 
 .accountButtonMuted {
