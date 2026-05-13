@@ -33,6 +33,13 @@ const readAuthFileQuotaLabel = (file: AuthFileItem, authIndex: string) => {
   return authIndex;
 };
 
+const buildRowQuotaProviderSet = (row: MonitoringAccountRow) =>
+  new Set(
+    row.providers
+      .map((provider) => provider.trim().toLowerCase())
+      .filter((provider) => provider === 'codex' || provider === 'kiro')
+  );
+
 export const buildMonitoringAccountQuotaTargetsByAccount = (
   rows: MonitoringAccountRow[],
   authStateByRowId: Map<string, MonitoringAccountAuthState>
@@ -41,6 +48,7 @@ export const buildMonitoringAccountQuotaTargetsByAccount = (
     rows.map((row) => {
       const bucket = new Map<string, MonitoringAccountQuotaTarget>();
       const authState = authStateByRowId.get(row.id);
+      const rowQuotaProviders = buildRowQuotaProviderSet(row);
 
       authState?.files.forEach((file) => {
         const authIndex = normalizeAuthIndex(file['auth_index'] ?? file.authIndex);
@@ -50,6 +58,8 @@ export const buildMonitoringAccountQuotaTargetsByAccount = (
         if (isCodex && !authIndex) return;
 
         const providerType = isKiro ? 'kiro' : 'codex';
+        if (rowQuotaProviders.size > 0 && !rowQuotaProviders.has(providerType)) return;
+
         const dedupeKey = `${providerType}::${authIndex || file.name}::${file.name}`;
         if (bucket.has(dedupeKey)) return;
 
@@ -65,7 +75,7 @@ export const buildMonitoringAccountQuotaTargetsByAccount = (
       });
 
       return [
-        row.account,
+        row.id,
         Array.from(bucket.values()).sort((left, right) =>
           left.authLabel.localeCompare(right.authLabel)
         ),

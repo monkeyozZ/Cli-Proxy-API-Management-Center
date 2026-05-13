@@ -6,7 +6,7 @@ import type { AuthFileItem } from '@/types';
 import { GEMINI_CLI_IGNORED_MODEL_PREFIXES } from './constants';
 
 export function resolveAuthProvider(file: AuthFileItem): string {
-  const raw = file.provider ?? file.type ?? '';
+  const raw = file.type ?? file.provider ?? '';
   return String(raw).trim().toLowerCase();
 }
 

@@ -1,4 +1,5 @@
 import type { AuthFileItem } from '@/types';
+import { resolveAuthProvider } from '@/utils/quota';
 import { normalizeRecentRequestAuthIndex, type StatusBarData } from '@/utils/recentRequests';
 import type {
   MonitoringAccountRow,
@@ -476,9 +477,11 @@ export const buildMonitoringAccountStatusDataMap = (
     }
 
     const accountKey = row.account || row.authLabel || row.source;
-    const existing = grouped.get(accountKey) ?? [];
+    const providerKey = row.provider || '-';
+    const rowKey = `${providerKey}::${accountKey}`;
+    const existing = grouped.get(rowKey) ?? [];
     existing.push(row);
-    grouped.set(accountKey, existing);
+    grouped.set(rowKey, existing);
   });
 
   return new Map(
@@ -528,6 +531,32 @@ const buildAccountAuthIndicesByIdentity = (authFilesByAuthIndex: Map<string, Aut
   return indicesByIdentity;
 };
 
+const normalizeProviderSet = (providers: string[]) =>
+  new Set(
+    providers
+      .map((provider) => provider.trim().toLowerCase())
+      .filter((provider) => provider && provider !== '-')
+  );
+
+const filterAuthIndicesByProvider = (
+  authIndices: string[],
+  authFilesByAuthIndex: Map<string, AuthFileItem>,
+  providers: string[]
+) => {
+  const providerSet = normalizeProviderSet(providers);
+  if (providerSet.size === 0) return authIndices;
+
+  return authIndices.filter((authIndex) => {
+    const normalizedAuthIndex = normalizeRecentRequestAuthIndex(authIndex);
+    if (!normalizedAuthIndex) return false;
+
+    const file = authFilesByAuthIndex.get(normalizedAuthIndex);
+    if (!file) return false;
+
+    return providerSet.has(resolveAuthProvider(file));
+  });
+};
+
 export const buildMonitoringAccountAuthStateMap = (
   rows: MonitoringAccountRow[],
   authFilesByAuthIndex: Map<string, AuthFileItem>
@@ -546,8 +575,16 @@ export const buildMonitoringAccountAuthStateMap = (
 
       const authIndices =
         resolvedAuthIndices.size > 0 ? Array.from(resolvedAuthIndices).sort() : row.authIndices;
+      const filteredAuthIndices = filterAuthIndicesByProvider(
+        authIndices,
+        authFilesByAuthIndex,
+        row.providers
+      );
 
-      return [row.id, buildMonitoringAccountAuthState(authIndices, authFilesByAuthIndex)] as const;
+      return [
+        row.id,
+        buildMonitoringAccountAuthState(filteredAuthIndices, authFilesByAuthIndex),
+      ] as const;
     })
   );
 };

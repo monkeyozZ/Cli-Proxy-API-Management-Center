@@ -38,6 +38,7 @@ import {
   IconSettings,
   IconSlidersHorizontal,
   IconTimer,
+  IconTrash2,
   IconTrendingUp,
 } from '@/components/ui/icons';
 import {
@@ -1346,7 +1347,9 @@ function AccountQuotaPanel({
         ? undefined
         : { width: `${Math.max(0, Math.min(100, remainingPercent))}%` };
     const resetLabel =
-      entry.nextResetAt != null && entry.nextResetAt > 0 ? formatUnixSeconds(entry.nextResetAt) : '';
+      entry.nextResetAt != null && entry.nextResetAt > 0
+        ? formatUnixSeconds(entry.nextResetAt)
+        : '';
     const planLabel = entry.subscriptionTitle ?? t('kiro_quota.plan_unknown');
     const usageLabel = `${formatQuotaAmount(entry.currentUsage)} / ${formatQuotaAmount(entry.usageLimit)}`;
 
@@ -1460,17 +1463,13 @@ function AccountQuotaPanel({
                 ? (entry.subscriptionTitle ?? t('kiro_quota.plan_unknown'))
                 : getCodexPlanLabel(entry.planType, t);
             const planLabelKey =
-              entry.providerType === 'kiro'
-                ? 'kiro_quota.plan_label'
-                : 'codex_quota.plan_label';
+              entry.providerType === 'kiro' ? 'kiro_quota.plan_label' : 'codex_quota.plan_label';
             return (
               <div key={entry.key} className={styles.quotaEntryCard}>
                 <div className={styles.quotaEntryHeader}>
                   <div className={styles.quotaEntryMain}>
                     <strong>{entry.authLabel}</strong>
-                    <small>
-                      {planLabel ? `${t(planLabelKey)}: ${planLabel}` : entry.fileName}
-                    </small>
+                    <small>{planLabel ? `${t(planLabelKey)}: ${planLabel}` : entry.fileName}</small>
                   </div>
                 </div>
 
@@ -1486,8 +1485,8 @@ function AccountQuotaPanel({
                   : entry.providerType === 'kiro'
                     ? renderKiroQuota(entry)
                     : entry.windows.length > 0
-                    ? renderQuotaWindows(entry.windows)
-                    : renderStateMessage(t('codex_quota.empty_windows'), t('codex_quota.idle'))}
+                      ? renderQuotaWindows(entry.windows)
+                      : renderStateMessage(t('codex_quota.empty_windows'), t('codex_quota.idle'))}
               </div>
             );
           })}
@@ -2058,12 +2057,13 @@ export function MonitoringCenterPage() {
   const [selectedChannel, setSelectedChannel] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>('all');
   const [expandedAccounts, setExpandedAccounts] = useState<Record<string, boolean>>({});
-  const [focusedAccount, setFocusedAccount] = useState<string | null>(null);
+  const [focusedAccountId, setFocusedAccountId] = useState<string | null>(null);
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [isCustomRangeModalOpen, setIsCustomRangeModalOpen] = useState(false);
   const [syncingPrices, setSyncingPrices] = useState(false);
   const [usageExporting, setUsageExporting] = useState(false);
   const [usageImporting, setUsageImporting] = useState(false);
+  const [usageClearing, setUsageClearing] = useState(false);
   const [priceModel, setPriceModel] = useState('');
   const [priceDraft, setPriceDraft] = useState<PriceDraft>(() => createPriceDraft());
   const [accountQuotaStates, setAccountQuotaStates] = useState<Record<string, AccountQuotaState>>(
@@ -2155,6 +2155,7 @@ export function MonitoringCenterPage() {
     syncModelPrices,
     exportUsage,
     importUsage,
+    clearUsage,
     loadUsage,
   } = useUsageData();
 
@@ -2428,7 +2429,7 @@ export function MonitoringCenterPage() {
     setCurrentAccountPage(accountPagination.currentPage);
   }, [accountPage, accountPagination.currentPage, overallLoading, setCurrentAccountPage]);
 
-  const accountQuotaTargetsByAccount = useMemo(
+  const accountQuotaTargetsByRowId = useMemo(
     () => buildMonitoringAccountQuotaTargetsByAccount(accountRows, accountAuthStateByRowId),
     [accountAuthStateByRowId, accountRows]
   );
@@ -2564,7 +2565,7 @@ export function MonitoringCenterPage() {
   const restoreFocusSnapshot = useCallback(() => {
     const snapshot = focusSnapshotRef.current;
     focusSnapshotRef.current = null;
-    setFocusedAccount(null);
+    setFocusedAccountId(null);
 
     if (!snapshot) {
       setSelectedAccount('all');
@@ -2581,7 +2582,7 @@ export function MonitoringCenterPage() {
 
   const clearFilters = useCallback(() => {
     focusSnapshotRef.current = null;
-    setFocusedAccount(null);
+    setFocusedAccountId(null);
     setSearchInput('');
     setSelectedAccount('all');
     setSelectedProvider('all');
@@ -2629,9 +2630,9 @@ export function MonitoringCenterPage() {
   }, []);
 
   const loadAccountQuota = useCallback(
-    async (account: string, force: boolean = false) => {
-      const currentState = accountQuotaStatesRef.current[account];
-      const targets = accountQuotaTargetsByAccount.get(account) ?? [];
+    async (rowId: string, force: boolean = false) => {
+      const currentState = accountQuotaStatesRef.current[rowId];
+      const targets = accountQuotaTargetsByRowId.get(rowId) ?? [];
       const providerType = getAccountQuotaProviderType(targets);
       const targetKey = targets.map((target) => target.key).join('|');
       if (
@@ -2643,26 +2644,26 @@ export function MonitoringCenterPage() {
         return;
       }
 
-      const requestId = (accountQuotaRequestIdsRef.current[account] ?? 0) + 1;
-      accountQuotaRequestIdsRef.current[account] = requestId;
+      const requestId = (accountQuotaRequestIdsRef.current[rowId] ?? 0) + 1;
+      accountQuotaRequestIdsRef.current[rowId] = requestId;
 
       setAccountQuotaStates((previous) => ({
         ...previous,
-        [account]: {
+        [rowId]: {
           status: 'loading',
           targetKey,
           providerType,
           entries:
-            previous[account]?.targetKey === targetKey ? (previous[account]?.entries ?? []) : [],
-          lastRefreshedAt: previous[account]?.lastRefreshedAt,
+            previous[rowId]?.targetKey === targetKey ? (previous[rowId]?.entries ?? []) : [],
+          lastRefreshedAt: previous[rowId]?.lastRefreshedAt,
         },
       }));
 
       if (targets.length === 0) {
-        if (accountQuotaRequestIdsRef.current[account] !== requestId) return;
+        if (accountQuotaRequestIdsRef.current[rowId] !== requestId) return;
         setAccountQuotaStates((previous) => ({
           ...previous,
-          [account]: {
+          [rowId]: {
             status: 'success',
             targetKey,
             providerType,
@@ -2676,7 +2677,7 @@ export function MonitoringCenterPage() {
       const settled = await Promise.allSettled(
         targets.map((target) => requestAccountQuota(target, t))
       );
-      if (accountQuotaRequestIdsRef.current[account] !== requestId) return;
+      if (accountQuotaRequestIdsRef.current[rowId] !== requestId) return;
 
       const entries = settled.map((result, index) => {
         const fallback = targets[index];
@@ -2702,7 +2703,7 @@ export function MonitoringCenterPage() {
       const hasSuccess = entries.some((entry) => !entry.error);
       setAccountQuotaStates((previous) => ({
         ...previous,
-        [account]: {
+        [rowId]: {
           status: hasSuccess ? 'success' : 'error',
           targetKey,
           providerType,
@@ -2712,25 +2713,25 @@ export function MonitoringCenterPage() {
         },
       }));
     },
-    [accountQuotaTargetsByAccount, t]
+    [accountQuotaTargetsByRowId, t]
   );
 
   const toggleAccountExpanded = useCallback(
-    (accountId: string, account: string) => {
-      if (!expandedAccounts[accountId]) {
-        void loadAccountQuota(account);
+    (rowId: string) => {
+      if (!expandedAccounts[rowId]) {
+        void loadAccountQuota(rowId);
       }
       setExpandedAccounts((previous) => ({
         ...previous,
-        [accountId]: !previous[accountId],
+        [rowId]: !previous[rowId],
       }));
     },
     [expandedAccounts, loadAccountQuota]
   );
 
   const focusAccount = useCallback(
-    (account: string) => {
-      if (focusedAccount === account) {
+    (row: MonitoringAccountRow) => {
+      if (focusedAccountId === row.id) {
         restoreFocusSnapshot();
         return;
       }
@@ -2746,11 +2747,14 @@ export function MonitoringCenterPage() {
         };
       }
 
-      setFocusedAccount(account);
-      setSelectedAccount(account);
+      setFocusedAccountId(row.id);
+      setSelectedAccount(row.account);
+      if (row.providers.length === 1) {
+        setSelectedProvider(row.providers[0]);
+      }
     },
     [
-      focusedAccount,
+      focusedAccountId,
       restoreFocusSnapshot,
       searchInput,
       selectedAccount,
@@ -2765,12 +2769,24 @@ export function MonitoringCenterPage() {
     (value: string) => {
       setSelectedAccount(value);
 
-      if (focusedAccount && value !== focusedAccount) {
+      if (focusedAccountId) {
         focusSnapshotRef.current = null;
-        setFocusedAccount(null);
+        setFocusedAccountId(null);
       }
     },
-    [focusedAccount]
+    [focusedAccountId]
+  );
+
+  const handleProviderFilterChange = useCallback(
+    (value: string) => {
+      setSelectedProvider(value);
+
+      if (focusedAccountId) {
+        focusSnapshotRef.current = null;
+        setFocusedAccountId(null);
+      }
+    },
+    [focusedAccountId]
   );
 
   const handleAccountPageSizeChange = useCallback(
@@ -3065,6 +3081,60 @@ export function MonitoringCenterPage() {
     [importUsageFile, showConfirmation, showNotification, t]
   );
 
+  const buildUsageClearTarget = useCallback(() => {
+    const bounds = getRangeBounds(timeRange, Date.now(), customTimeRange);
+    if (timeRange === 'custom' && !bounds) {
+      return null;
+    }
+    if (!bounds || !Number.isFinite(bounds.startMs) || !Number.isFinite(bounds.endMs)) {
+      return {
+        label: t('monitoring.range_all'),
+        range: undefined,
+      };
+    }
+    return {
+      label: formatStatusWindowLabel(bounds.startMs, bounds.endMs, i18n.language),
+      range: {
+        startMs: Math.max(0, Math.floor(bounds.startMs)),
+        endMs: Math.max(0, Math.floor(bounds.endMs)),
+      },
+    };
+  }, [customTimeRange, i18n.language, t, timeRange]);
+
+  const handleUsageClearClick = useCallback(() => {
+    const target = buildUsageClearTarget();
+    if (!target) {
+      showNotification(t('monitoring.clear_usage_invalid_range'), 'warning');
+      return;
+    }
+
+    showConfirmation({
+      title: t('monitoring.clear_usage_confirm_title'),
+      message: (
+        <div className={styles.clearUsageConfirmBody}>
+          <p>{t('monitoring.clear_usage_confirm_body', { range: target.label })}</p>
+          <strong>{target.label}</strong>
+        </div>
+      ),
+      confirmText: t('monitoring.clear_usage_confirm_action'),
+      variant: 'danger',
+      onConfirm: async () => {
+        setUsageClearing(true);
+        try {
+          await clearUsage(target.range);
+          showNotification(t('monitoring.clear_usage_success', { range: target.label }), 'success');
+          await refreshAll();
+        } catch (error: unknown) {
+          const message =
+            error instanceof Error ? error.message : String(error || t('common.unknown_error'));
+          showNotification(`${t('monitoring.clear_usage_failed')}: ${message}`, 'error');
+        } finally {
+          setUsageClearing(false);
+        }
+      },
+    });
+  }, [buildUsageClearTarget, clearUsage, refreshAll, showConfirmation, showNotification, t]);
+
   return (
     <div className={styles.page}>
       {overallLoading && !usage ? (
@@ -3106,7 +3176,7 @@ export function MonitoringCenterPage() {
             type="button"
             className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
             onClick={() => void handleUsageExport()}
-            disabled={!usageServiceAvailable || usageExporting || usageImporting}
+            disabled={!usageServiceAvailable || usageExporting || usageImporting || usageClearing}
             title={
               usageServiceAvailable
                 ? t('usage_stats.export')
@@ -3120,7 +3190,7 @@ export function MonitoringCenterPage() {
             type="button"
             className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
             onClick={handleUsageImportClick}
-            disabled={!usageServiceAvailable || usageExporting || usageImporting}
+            disabled={!usageServiceAvailable || usageExporting || usageImporting || usageClearing}
             title={
               usageServiceAvailable
                 ? t('usage_stats.import')
@@ -3129,6 +3199,26 @@ export function MonitoringCenterPage() {
           >
             <IconFileText size={16} />
             <span>{usageImporting ? t('common.loading') : t('usage_stats.import')}</span>
+          </button>
+          <button
+            type="button"
+            className={`${styles.actionButton} ${styles.actionButtonDanger}`}
+            onClick={handleUsageClearClick}
+            disabled={
+              usageClearing || usageExporting || usageImporting || Boolean(customTimeRangeError)
+            }
+            title={
+              customTimeRangeError
+                ? t('monitoring.clear_usage_invalid_range')
+                : t('monitoring.clear_usage_range')
+            }
+          >
+            <IconTrash2 size={16} />
+            <span>
+              {usageClearing
+                ? t('monitoring.clear_usage_range_loading')
+                : t('monitoring.clear_usage_range')}
+            </span>
           </button>
           <button
             type="button"
@@ -3229,7 +3319,7 @@ export function MonitoringCenterPage() {
             <Select
               value={selectedProvider}
               options={providerOptions}
-              onChange={setSelectedProvider}
+              onChange={handleProviderFilterChange}
               ariaLabel={t('monitoring.filter_provider')}
             />
             <Select
@@ -3423,7 +3513,7 @@ export function MonitoringCenterPage() {
               <tbody>
                 {accountPagination.pageItems.map((row) => {
                   const isExpanded = Boolean(expandedAccounts[row.id]);
-                  const isFocused = focusedAccount === row.account;
+                  const isFocused = focusedAccountId === row.id;
                   const authState = accountAuthStateByRowId.get(row.id) ?? EMPTY_ACCOUNT_AUTH_STATE;
                   const statusTone = getAccountStatusTone(authState);
                   const summaryMetrics = buildAccountSummaryMetrics(
@@ -3477,7 +3567,7 @@ export function MonitoringCenterPage() {
                   accountMenuItems.push({
                     key: 'refresh-quota',
                     label: t('monitoring.account_overview_row_menu_refresh_quota'),
-                    onClick: () => void loadAccountQuota(row.account, true),
+                    onClick: () => void loadAccountQuota(row.id, true),
                   });
 
                   return (
@@ -3487,7 +3577,7 @@ export function MonitoringCenterPage() {
                           <AccountSummaryPrimary
                             row={row}
                             expanded={isExpanded}
-                            onToggle={() => toggleAccountExpanded(row.id, row.account)}
+                            onToggle={() => toggleAccountExpanded(row.id)}
                             statusTone={statusTone}
                           />
                         </td>
@@ -3512,7 +3602,7 @@ export function MonitoringCenterPage() {
                             <button
                               type="button"
                               className={styles.inlineActionButton}
-                              onClick={() => focusAccount(row.account)}
+                              onClick={() => focusAccount(row)}
                             >
                               <IconCrosshair size={13} aria-hidden="true" />
                               <span>
@@ -3539,8 +3629,8 @@ export function MonitoringCenterPage() {
                               locale={i18n.language}
                               t={t}
                               summaryMetrics={summaryMetrics}
-                              quotaState={accountQuotaStates[row.account]}
-                              onRefreshQuota={() => void loadAccountQuota(row.account, true)}
+                              quotaState={accountQuotaStates[row.id]}
+                              onRefreshQuota={() => void loadAccountQuota(row.id, true)}
                               variant="table"
                             />
                           </td>
@@ -3576,11 +3666,11 @@ export function MonitoringCenterPage() {
                   hasPrices={hasPrices}
                   locale={i18n.language}
                   t={t}
-                  isFocused={focusedAccount === row.account}
+                  isFocused={focusedAccountId === row.id}
                   statusData={accountStatusDataByRowId.get(row.id) ?? emptyAccountStatusData}
                   scopeText={accountOverviewScopeText}
                   statusUpdating={accountStatusUpdating[row.id] === true}
-                  onFocus={() => focusAccount(row.account)}
+                  onFocus={() => focusAccount(row)}
                   onToggleEnabled={(enabled) => void handleAccountStatusToggle(row, enabled)}
                 />
               );

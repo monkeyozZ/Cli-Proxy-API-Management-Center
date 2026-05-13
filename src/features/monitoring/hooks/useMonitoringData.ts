@@ -378,6 +378,7 @@ export type MonitoringAccountRow = {
   account: string;
   displayAccount: string;
   accountMasked: string;
+  providers: string[];
   authLabels: string[];
   authIndices: string[];
   channels: string[];
@@ -538,7 +539,7 @@ const normalizeAuthMeta = (entry: AuthFileItem): MonitoringAuthMeta | null => {
     authIndex,
     label,
     account: readString(entry.account) || readString(entry.email) || label,
-    provider: readString(entry.provider) || readString(entry.type) || '-',
+    provider: readString(entry.type) || readString(entry.provider) || '-',
     status: readString(entry.status) || 'unknown',
     disabled: parseBoolean(entry.disabled),
     unavailable: parseBoolean(entry.unavailable),
@@ -735,6 +736,7 @@ export const buildAccountRows = (rows: MonitoringEventRow[]): MonitoringAccountR
       id: string;
       account: string;
       accountMasked: string;
+      providers: Set<string>;
       authLabels: Set<string>;
       authIndices: Set<string>;
       channels: Set<string>;
@@ -770,10 +772,13 @@ export const buildAccountRows = (rows: MonitoringEventRow[]): MonitoringAccountR
 
   rows.forEach((row) => {
     const accountKey = row.account || row.authLabel || row.source;
-    const existing = grouped.get(accountKey) ?? {
-      id: accountKey,
+    const providerKey = row.provider || '-';
+    const rowKey = `${providerKey}::${accountKey}`;
+    const existing = grouped.get(rowKey) ?? {
+      id: rowKey,
       account: row.account,
       accountMasked: row.accountMasked,
+      providers: new Set<string>(),
       authLabels: new Set<string>(),
       authIndices: new Set<string>(),
       channels: new Set<string>(),
@@ -793,6 +798,7 @@ export const buildAccountRows = (rows: MonitoringEventRow[]): MonitoringAccountR
     };
 
     existing.rows.push(row);
+    existing.providers.add(row.provider);
     existing.authLabels.add(row.authLabel);
     existing.authIndices.add(row.authIndex);
     existing.channels.add(row.channel);
@@ -835,7 +841,7 @@ export const buildAccountRows = (rows: MonitoringEventRow[]): MonitoringAccountR
     modelEntry.lastSeenAt = Math.max(modelEntry.lastSeenAt, row.timestampMs);
     existing.modelMap.set(row.model, modelEntry);
 
-    grouped.set(accountKey, existing);
+    grouped.set(rowKey, existing);
   });
 
   return Array.from(grouped.values())
@@ -846,6 +852,7 @@ export const buildAccountRows = (rows: MonitoringEventRow[]): MonitoringAccountR
         account: item.account,
         displayAccount: resolveAccountDisplayName(item.account, channels),
         accountMasked: item.accountMasked,
+        providers: Array.from(item.providers).filter(isEffectiveLabel).sort(),
         authLabels: Array.from(item.authLabels).sort(),
         authIndices: Array.from(item.authIndices).sort(),
         channels,

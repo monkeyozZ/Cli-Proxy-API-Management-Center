@@ -15,6 +15,7 @@ export interface UsageServiceCollectorStatus {
   mode?: string;
   transport?: string;
   queue?: string;
+  backup?: string;
   lastConsumedAt?: number;
   lastInsertedAt?: number;
   totalInserted?: number;
@@ -63,6 +64,16 @@ export interface UsageExportResponse {
   filename: string;
 }
 
+export interface UsageClearRange {
+  startMs?: number;
+  endMs?: number;
+}
+
+export interface UsageClearResponse {
+  status?: string;
+  usage?: UsageServiceStatus;
+}
+
 const USAGE_SERVICE_TIMEOUT_MS = 15 * 1000;
 const USAGE_SERVICE_TRANSFER_TIMEOUT_MS = 60 * 1000;
 export const USAGE_SERVICE_ID = 'cpa-manager';
@@ -82,6 +93,17 @@ const buildUrl = (base: string, path: string): string => {
 
 const authHeaders = (managementKey?: string) =>
   managementKey ? { Authorization: `Bearer ${managementKey}` } : undefined;
+
+const usageClearParams = (range?: UsageClearRange) => {
+  const params: Record<string, number> = {};
+  if (Number.isFinite(range?.startMs)) {
+    params.startMs = Math.floor(range!.startMs!);
+  }
+  if (Number.isFinite(range?.endMs)) {
+    params.endMs = Math.floor(range!.endMs!);
+  }
+  return params;
+};
 
 const readHeader = (headers: unknown, name: string): string => {
   if (!headers || typeof headers !== 'object') return '';
@@ -141,10 +163,23 @@ export const usageServiceApi = {
     return response.data;
   },
 
-  getModelPrices: async (
+  clearUsage: async (
     base: string,
-    managementKey?: string
-  ): Promise<ModelPricesResponse> => {
+    managementKey?: string,
+    range?: UsageClearRange
+  ): Promise<UsageClearResponse> => {
+    const response = await axios.delete<UsageClearResponse>(
+      buildUrl(base, '/v0/management/usage'),
+      {
+        timeout: USAGE_SERVICE_TIMEOUT_MS,
+        headers: authHeaders(managementKey),
+        params: usageClearParams(range),
+      }
+    );
+    return response.data;
+  },
+
+  getModelPrices: async (base: string, managementKey?: string): Promise<ModelPricesResponse> => {
     const response = await axios.get<ModelPricesResponse>(
       buildUrl(base, '/v0/management/model-prices'),
       {
@@ -187,10 +222,7 @@ export const usageServiceApi = {
     return response.data;
   },
 
-  exportUsage: async (
-    base: string,
-    managementKey?: string
-  ): Promise<UsageExportResponse> => {
+  exportUsage: async (base: string, managementKey?: string): Promise<UsageExportResponse> => {
     const response = await axios.get<Blob>(buildUrl(base, '/v0/management/usage/export'), {
       timeout: USAGE_SERVICE_TRANSFER_TIMEOUT_MS,
       headers: authHeaders(managementKey),

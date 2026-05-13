@@ -267,6 +267,18 @@
   color: var(--monitor-accent-strong);
 }
 
+.actionButtonDanger {
+  border-color: color-mix(in srgb, var(--monitor-red) 28%, var(--monitor-line));
+  background: color-mix(in srgb, var(--monitor-red) 8%, var(--monitor-surface));
+  color: var(--monitor-red);
+}
+
+.actionButtonDanger:hover {
+  border-color: color-mix(in srgb, var(--monitor-red) 44%, var(--monitor-line-strong));
+  background: color-mix(in srgb, var(--monitor-red) 12%, var(--monitor-surface));
+  color: var(--monitor-red);
+}
+
 .quickNavLink {
   color: var(--monitor-muted);
 }
@@ -312,6 +324,30 @@
 .customRangeModalBody {
   display: grid;
   gap: 12px;
+}
+
+.clearUsageConfirmBody {
+  display: grid;
+  gap: 12px;
+  color: var(--monitor-ink);
+}
+
+.clearUsageConfirmBody p {
+  margin: 0;
+  color: var(--monitor-muted);
+  line-height: 1.6;
+}
+
+.clearUsageConfirmBody strong {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--monitor-red) 9%, var(--monitor-surface));
+  color: var(--monitor-red);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .customRangeModalGrid {
