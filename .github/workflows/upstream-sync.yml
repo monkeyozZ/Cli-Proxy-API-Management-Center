@@ -182,7 +182,7 @@ jobs:
           src/i18n/locales/zh-CN.json
           src/i18n/locales/zh-TW.json
           package.json
-          package-lock.json
+          bun.lock
           tsconfig.json
           tsconfig.app.json
           vite.config.ts
@@ -293,11 +293,16 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 22
-          cache: npm
+
+      - name: Set up Bun for usage targeted validation
+        if: steps.merge.outputs.has_changes == 'true' && steps.guard.outputs.usage_validation_hit == 'true'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
 
       - name: Install dependencies for usage targeted validation
         if: steps.merge.outputs.has_changes == 'true' && steps.guard.outputs.usage_validation_hit == 'true'
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Run CPA-Manager usage targeted validation
         if: steps.merge.outputs.has_changes == 'true' && steps.guard.outputs.usage_validation_hit == 'true'
