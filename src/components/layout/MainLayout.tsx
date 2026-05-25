@@ -21,6 +21,7 @@ import {
   IconSidebarProviders,
   IconSidebarQuota,
   IconSidebarSystem,
+  IconSidebarUsage,
 } from '@/components/ui/icons';
 import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
 import {
@@ -41,6 +42,7 @@ const sidebarIcons: Record<string, ReactNode> = {
   authFiles: <IconSidebarAuthFiles size={18} />,
   oauth: <IconSidebarOauth size={18} />,
   quota: <IconSidebarQuota size={18} />,
+  usage: <IconSidebarUsage size={18} />,
   config: <IconSidebarConfig size={18} />,
   logs: <IconSidebarLogs size={18} />,
   system: <IconSidebarSystem size={18} />,
