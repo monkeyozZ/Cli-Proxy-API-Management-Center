@@ -6,8 +6,10 @@ import type { AuthFileItem } from '@/types';
 import { GEMINI_CLI_IGNORED_MODEL_PREFIXES } from './constants';
 
 export function resolveAuthProvider(file: AuthFileItem): string {
-  const raw = file.type ?? file.provider ?? '';
-  return String(raw).trim().toLowerCase();
+  const raw = file.provider ?? file.type ?? '';
+  const key = String(raw).trim().toLowerCase().replace(/_/g, '-');
+  if (key === 'x-ai' || key === 'grok') return 'xai';
+  return key;
 }
 
 export function isAntigravityFile(file: AuthFileItem): boolean {
@@ -25,9 +27,7 @@ export function isClaudeOAuthFile(file: AuthFileItem): boolean {
       ? (file.metadata as Record<string, unknown>)
       : null;
   const accessToken =
-    metadata && typeof metadata.access_token === 'string'
-      ? metadata.access_token.trim()
-      : '';
+    metadata && typeof metadata.access_token === 'string' ? metadata.access_token.trim() : '';
   return accessToken.includes('sk-ant-oat');
 }
 
@@ -45,6 +45,10 @@ export function isKimiFile(file: AuthFileItem): boolean {
 
 export function isKiroFile(file: AuthFileItem): boolean {
   return resolveAuthProvider(file) === 'kiro';
+}
+
+export function isXaiFile(file: AuthFileItem): boolean {
+  return resolveAuthProvider(file) === 'xai';
 }
 
 export function isRuntimeOnlyAuthFile(file: AuthFileItem): boolean {

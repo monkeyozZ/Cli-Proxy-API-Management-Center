@@ -35,6 +35,7 @@ export function AuthFilesPrefixProxyEditorModal(props: AuthFilesPrefixProxyEdito
     }
   };
   const previewText = formatJsonText(updatedText);
+  const invalidContentPreview = editor?.invalidContentPreview ?? '';
 
   return (
     <Modal
@@ -101,14 +102,22 @@ export function AuthFilesPrefixProxyEditorModal(props: AuthFilesPrefixProxyEdito
               </div>
               <div className={styles.prefixProxyJsonWrapper}>
                 <label className={styles.prefixProxyLabel}>
-                  {t('auth_files.prefix_proxy_source_label')}
+                  {editor.json
+                    ? t('auth_files.prefix_proxy_source_label')
+                    : t('auth_files.prefix_proxy_invalid_content_label')}
                 </label>
-                <textarea
-                  className={styles.prefixProxyTextarea}
-                  rows={10}
-                  readOnly
-                  value={previewText}
-                />
+                {editor.json ? (
+                  <textarea
+                    className={styles.prefixProxyTextarea}
+                    rows={10}
+                    readOnly
+                    value={previewText}
+                  />
+                ) : (
+                  <pre className={styles.prefixProxyInvalidContentPreview}>
+                    {invalidContentPreview}
+                  </pre>
+                )}
               </div>
               <div className={styles.prefixProxyFields}>
                 <Input

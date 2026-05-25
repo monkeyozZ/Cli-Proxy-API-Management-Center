@@ -17,8 +17,9 @@ export interface Config {
   proxyUrl?: string;
   requestRetry?: number;
   quotaExceeded?: QuotaExceededConfig;
-  usageStatisticsEnabled?: boolean;
   requestLog?: boolean;
+  usageStatisticsEnabled?: boolean;
+  redisUsageQueueRetentionSeconds?: number;
   loggingToFile?: boolean;
   logsMaxTotalSizeMb?: number;
   wsAuth?: boolean;
@@ -40,7 +41,6 @@ export type RawConfigSection =
   | 'proxy-url'
   | 'request-retry'
   | 'quota-exceeded'
-  | 'usage-statistics-enabled'
   | 'request-log'
   | 'logging-to-file'
   | 'logs-max-total-size-mb'

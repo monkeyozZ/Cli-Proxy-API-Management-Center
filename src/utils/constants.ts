@@ -18,26 +18,17 @@ export const MANAGEMENT_API_PREFIX = '/v0/management';
 export const REQUEST_TIMEOUT_MS = 30 * 1000;
 export const VERSION_HEADER_KEYS = ['x-cpa-version', 'x-server-version'];
 export const BUILD_DATE_HEADER_KEYS = ['x-cpa-build-date', 'x-server-build-date'];
-export const STATUS_UPDATE_INTERVAL_MS = 1000;
-export const LOG_REFRESH_DELAY_MS = 500;
 
 // 日志相关
-export const MAX_LOG_LINES = 2000;
-export const LOG_FETCH_LIMIT = 2500;
 export const LOGS_TIMEOUT_MS = 60 * 1000;
 
 // 认证文件分页
-export const DEFAULT_AUTH_FILES_PAGE_SIZE = 20;
-export const MIN_AUTH_FILES_PAGE_SIZE = 10;
-export const MAX_AUTH_FILES_PAGE_SIZE = 100;
 export const MAX_AUTH_FILE_SIZE = 10 * 1024 * 1024;
 
 // 本地存储键名
 export const STORAGE_KEY_AUTH = 'cli-proxy-auth';
 export const STORAGE_KEY_THEME = 'cli-proxy-theme';
 export const STORAGE_KEY_LANGUAGE = 'cli-proxy-language';
-export const STORAGE_KEY_SIDEBAR = 'cli-proxy-sidebar-collapsed';
-export const STORAGE_KEY_AUTH_FILES_PAGE_SIZE = 'cli-proxy-auth-files-page-size';
 
 // 语言配置
 export const LANGUAGE_ORDER = defineLanguageOrder(['zh-CN', 'zh-TW', 'en', 'ru'] as const);
@@ -59,7 +50,8 @@ export const OAUTH_CARD_IDS = [
   'antigravity-oauth-card',
   'gemini-cli-oauth-card',
   'kiro-oauth-card',
-  'kimi-oauth-card'
+  'kimi-oauth-card',
+  'xai-oauth-card',
 ];
 export const OAUTH_PROVIDERS = {
   CODEX: 'codex',
@@ -67,7 +59,8 @@ export const OAUTH_PROVIDERS = {
   ANTIGRAVITY: 'antigravity',
   KIRO: 'kiro',
   GEMINI_CLI: 'gemini-cli',
-  KIMI: 'kimi'
+  KIMI: 'kimi',
+  XAI: 'xai',
 } as const;
 
 // API 端点
@@ -79,5 +72,6 @@ export const API_ENDPOINTS = {
   AUTH_FILES: '/auth-files',
   OAUTH: '/oauth',
   USAGE: '/usage',
-  LOGS: '/logs'
+  MONITORING: '/monitoring',
+  LOGS: '/logs',
 } as const;
