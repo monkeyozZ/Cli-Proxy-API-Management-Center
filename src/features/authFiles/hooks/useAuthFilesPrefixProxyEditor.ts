@@ -9,6 +9,7 @@ import { isKiroFile } from '@/utils/quota';
 import {
   applyCodexAuthFileWebsockets,
   normalizeExcludedModels,
+  normalizeProviderKey,
   parseDisableCoolingValue,
   parseExcludedModelsText,
   parsePriorityValue,
@@ -74,6 +75,7 @@ export type PrefixProxyEditorState = {
   rawText: string;
   invalidContentPreview: string;
   json: Record<string, unknown> | null;
+  providerKey: string;
   prefix: string;
   proxyUrl: string;
   priority: string;
@@ -256,7 +258,12 @@ const normalizeKiroJsonObject = (value: Record<string, unknown>): Record<string,
   );
 
   KIRO_TEXT_FIELD_DEFINITIONS.forEach(({ jsonKey, aliases }) => {
-    setOrDeleteJsonStringField(normalized, jsonKey, aliases, readStringField(value, [jsonKey, ...aliases]));
+    setOrDeleteJsonStringField(
+      normalized,
+      jsonKey,
+      aliases,
+      readStringField(value, [jsonKey, ...aliases])
+    );
   });
 
   const disabledValue = normalizeBooleanField(value.disabled);
@@ -370,13 +377,8 @@ export function useAuthFilesPrefixProxyEditor(
 
   const openPrefixProxyEditor = async (file: AuthFileItem) => {
     const name = file.name;
-    const normalizedType = String(file.type ?? '')
-      .trim()
-      .toLowerCase();
-    const normalizedProvider = String(file.provider ?? '')
-      .trim()
-      .toLowerCase();
-    const isCodexFile = normalizedType === 'codex' || normalizedProvider === 'codex';
+    const fileProviderKey = normalizeProviderKey(String(file.type ?? file.provider ?? ''));
+    const isCodexFile = fileProviderKey === 'codex';
     const isKiroAuthFile = isKiroFile(file);
 
     if (disableControls) return;
@@ -397,6 +399,7 @@ export function useAuthFilesPrefixProxyEditor(
       rawText: '',
       invalidContentPreview: '',
       json: null,
+      providerKey: fileProviderKey,
       prefix: '',
       proxyUrl: '',
       priority: '',
@@ -456,13 +459,19 @@ export function useAuthFilesPrefixProxyEditor(
       }
 
       let json = { ...(parsed as Record<string, unknown>) };
-      if (isCodexFile) {
+      let providerKey = normalizeProviderKey(
+        String(json.type ?? json.provider ?? file.type ?? file.provider ?? '')
+      );
+      const resolvedIsCodexFile = providerKey === 'codex';
+      const resolvedIsKiroFile = isKiroAuthFile || providerKey === 'kiro';
+      if (resolvedIsCodexFile) {
         const normalizedWebsockets = readCodexAuthFileWebsockets(json);
         delete json.websocket;
         json.websockets = normalizedWebsockets;
       }
-      if (isKiroAuthFile) {
+      if (resolvedIsKiroFile) {
         json = normalizeKiroJsonObject(json);
+        providerKey = 'kiro';
       }
 
       const originalText = JSON.stringify(json);
@@ -471,7 +480,7 @@ export function useAuthFilesPrefixProxyEditor(
       const priority = parsePriorityValue(json.priority);
       const excludedModels = normalizeExcludedModels(json.excluded_models);
       const disableCoolingValue = parseDisableCoolingValue(json.disable_cooling);
-      const websocketsValue = readCodexAuthFileWebsockets(json);
+      const websocketsValue = resolvedIsCodexFile ? readCodexAuthFileWebsockets(json) : false;
       const note = typeof json.note === 'string' ? json.note : '';
       const headers = json.headers;
       let headersText = '';
@@ -491,6 +500,9 @@ export function useAuthFilesPrefixProxyEditor(
           rawText: originalText,
           invalidContentPreview: '',
           json,
+          isCodexFile: resolvedIsCodexFile,
+          isKiroFile: resolvedIsKiroFile,
+          providerKey,
           prefix,
           proxyUrl,
           priority: priority !== undefined ? String(priority) : '',

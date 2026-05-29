@@ -119,193 +119,195 @@ export function AuthFilesPrefixProxyEditorModal(props: AuthFilesPrefixProxyEdito
                   </pre>
                 )}
               </div>
-              <div className={styles.prefixProxyFields}>
-                <Input
-                  label={t('auth_files.prefix_label')}
-                  value={editor.prefix}
-                  disabled={disableControls || editor.saving || !editor.json}
-                  onChange={(e) => onChange('prefix', e.target.value)}
-                />
-                <Input
-                  label={t('auth_files.proxy_url_label')}
-                  value={editor.proxyUrl}
-                  placeholder={t('auth_files.proxy_url_placeholder')}
-                  disabled={disableControls || editor.saving || !editor.json}
-                  onChange={(e) => onChange('proxyUrl', e.target.value)}
-                />
-                <Input
-                  label={t('auth_files.priority_label')}
-                  value={editor.priority}
-                  placeholder={t('auth_files.priority_placeholder')}
-                  hint={t('auth_files.priority_hint')}
-                  disabled={disableControls || editor.saving || !editor.json}
-                  onChange={(e) => onChange('priority', e.target.value)}
-                />
-                {editor.isKiroFile && (
-                  <>
-                    <Input
-                      label={t('auth_files.kiro_email_label')}
-                      value={editor.email}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('email', e.target.value)}
-                    />
-                    <Input
-                      label={t('auth_files.kiro_auth_method_label')}
-                      value={editor.authMethod}
-                      placeholder={t('auth_files.kiro_auth_method_placeholder')}
-                      hint={t('auth_files.kiro_auth_method_hint')}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('authMethod', e.target.value)}
-                    />
-                    <Input
-                      label={t('auth_files.kiro_provider_label')}
-                      value={editor.provider}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('provider', e.target.value)}
-                    />
-                    <Input
-                      label={t('auth_files.kiro_refresh_token_label')}
-                      value={editor.refreshToken}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('refreshToken', e.target.value)}
-                    />
-                    <Input
-                      label={t('auth_files.kiro_access_token_label')}
-                      value={editor.accessToken}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('accessToken', e.target.value)}
-                    />
-                    <Input
-                      label={t('auth_files.kiro_expires_at_label')}
-                      value={editor.expiresAt}
-                      placeholder={t('auth_files.kiro_expires_at_placeholder')}
-                      hint={t('auth_files.kiro_expires_at_hint')}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('expiresAt', e.target.value)}
-                    />
-                    <Input
-                      label={t('auth_files.kiro_profile_arn_label')}
-                      value={editor.profileArn}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('profileArn', e.target.value)}
-                    />
-                    <Input
-                      label={t('auth_files.kiro_client_id_label')}
-                      value={editor.clientId}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('clientId', e.target.value)}
-                    />
-                    <Input
-                      label={t('auth_files.kiro_client_secret_label')}
-                      value={editor.clientSecret}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('clientSecret', e.target.value)}
-                    />
-                    <Input
-                      label={t('auth_files.kiro_region_label')}
-                      value={editor.region}
-                      placeholder={t('auth_files.kiro_region_placeholder')}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('region', e.target.value)}
-                    />
-                    <Input
-                      label={t('auth_files.kiro_api_region_label')}
-                      value={editor.apiRegion}
-                      placeholder={t('auth_files.kiro_api_region_placeholder')}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('apiRegion', e.target.value)}
-                    />
-                    <Input
-                      label={t('auth_files.kiro_machine_id_label')}
-                      value={editor.machineId}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('machineId', e.target.value)}
-                    />
-                    <Input
-                      label={t('auth_files.kiro_subscription_title_label')}
-                      value={editor.subscriptionTitle}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('subscriptionTitle', e.target.value)}
-                    />
-                    <Input
-                      label={t('auth_files.kiro_proxy_username_label')}
-                      value={editor.proxyUsername}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('proxyUsername', e.target.value)}
-                    />
-                    <Input
-                      label={t('auth_files.kiro_proxy_password_label')}
-                      value={editor.proxyPassword}
-                      disabled={disableControls || editor.saving || !editor.json}
-                      onChange={(e) => onChange('proxyPassword', e.target.value)}
-                    />
-                    <div className="form-group">
-                      <label>{t('auth_files.kiro_disabled_label')}</label>
-                      <ToggleSwitch
-                        checked={Boolean(editor.disabled)}
+              {editor.json && (
+                <div className={styles.prefixProxyFields}>
+                  <Input
+                    label={t('auth_files.prefix_label')}
+                    value={editor.prefix}
+                    disabled={disableControls || editor.saving || !editor.json}
+                    onChange={(e) => onChange('prefix', e.target.value)}
+                  />
+                  <Input
+                    label={t('auth_files.proxy_url_label')}
+                    value={editor.proxyUrl}
+                    placeholder={t('auth_files.proxy_url_placeholder')}
+                    disabled={disableControls || editor.saving || !editor.json}
+                    onChange={(e) => onChange('proxyUrl', e.target.value)}
+                  />
+                  <Input
+                    label={t('auth_files.priority_label')}
+                    value={editor.priority}
+                    placeholder={t('auth_files.priority_placeholder')}
+                    hint={t('auth_files.priority_hint')}
+                    disabled={disableControls || editor.saving || !editor.json}
+                    onChange={(e) => onChange('priority', e.target.value)}
+                  />
+                  {editor.isKiroFile && (
+                    <>
+                      <Input
+                        label={t('auth_files.kiro_email_label')}
+                        value={editor.email}
                         disabled={disableControls || editor.saving || !editor.json}
-                        ariaLabel={t('auth_files.kiro_disabled_label')}
-                        onChange={(value) => onChange('disabled', value)}
+                        onChange={(e) => onChange('email', e.target.value)}
                       />
-                      <div className="hint">{t('auth_files.kiro_disabled_hint')}</div>
-                    </div>
-                  </>
-                )}
-                <div className="form-group">
-                  <label>{t('auth_files.excluded_models_label')}</label>
-                  <textarea
-                    className="input"
-                    value={editor.excludedModelsText}
-                    placeholder={t('auth_files.excluded_models_placeholder')}
-                    rows={4}
-                    disabled={disableControls || editor.saving || !editor.json}
-                    onChange={(e) => onChange('excludedModelsText', e.target.value)}
-                  />
-                  <div className="hint">{t('auth_files.excluded_models_hint')}</div>
-                </div>
-                <div className="form-group">
-                  <label>{t('auth_files.headers_label')}</label>
-                  <textarea
-                    className={`input ${editor.headersError ? styles.prefixProxyTextareaInvalid : ''}`}
-                    value={editor.headersText}
-                    placeholder={t('auth_files.headers_placeholder')}
-                    rows={4}
-                    aria-invalid={Boolean(editor.headersError)}
-                    disabled={disableControls || editor.saving || !editor.json}
-                    onChange={(e) => onChange('headersText', e.target.value)}
-                  />
-                  {editor.headersError && <div className="error-box">{editor.headersError}</div>}
-                  <div className="hint">{t('auth_files.headers_hint')}</div>
-                </div>
-                <Input
-                  label={t('auth_files.disable_cooling_label')}
-                  value={editor.disableCooling}
-                  placeholder={t('auth_files.disable_cooling_placeholder')}
-                  hint={t('auth_files.disable_cooling_hint')}
-                  disabled={disableControls || editor.saving || !editor.json}
-                  onChange={(e) => onChange('disableCooling', e.target.value)}
-                />
-                <Input
-                  label={t('auth_files.note_label')}
-                  value={editor.note}
-                  placeholder={t('auth_files.note_placeholder')}
-                  hint={t('auth_files.note_hint')}
-                  disabled={disableControls || editor.saving || !editor.json}
-                  onChange={(e) => onChange('note', e.target.value)}
-                />
-                {editor.isCodexFile && (
+                      <Input
+                        label={t('auth_files.kiro_auth_method_label')}
+                        value={editor.authMethod}
+                        placeholder={t('auth_files.kiro_auth_method_placeholder')}
+                        hint={t('auth_files.kiro_auth_method_hint')}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(e) => onChange('authMethod', e.target.value)}
+                      />
+                      <Input
+                        label={t('auth_files.kiro_provider_label')}
+                        value={editor.provider}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(e) => onChange('provider', e.target.value)}
+                      />
+                      <Input
+                        label={t('auth_files.kiro_refresh_token_label')}
+                        value={editor.refreshToken}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(e) => onChange('refreshToken', e.target.value)}
+                      />
+                      <Input
+                        label={t('auth_files.kiro_access_token_label')}
+                        value={editor.accessToken}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(e) => onChange('accessToken', e.target.value)}
+                      />
+                      <Input
+                        label={t('auth_files.kiro_expires_at_label')}
+                        value={editor.expiresAt}
+                        placeholder={t('auth_files.kiro_expires_at_placeholder')}
+                        hint={t('auth_files.kiro_expires_at_hint')}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(e) => onChange('expiresAt', e.target.value)}
+                      />
+                      <Input
+                        label={t('auth_files.kiro_profile_arn_label')}
+                        value={editor.profileArn}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(e) => onChange('profileArn', e.target.value)}
+                      />
+                      <Input
+                        label={t('auth_files.kiro_client_id_label')}
+                        value={editor.clientId}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(e) => onChange('clientId', e.target.value)}
+                      />
+                      <Input
+                        label={t('auth_files.kiro_client_secret_label')}
+                        value={editor.clientSecret}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(e) => onChange('clientSecret', e.target.value)}
+                      />
+                      <Input
+                        label={t('auth_files.kiro_region_label')}
+                        value={editor.region}
+                        placeholder={t('auth_files.kiro_region_placeholder')}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(e) => onChange('region', e.target.value)}
+                      />
+                      <Input
+                        label={t('auth_files.kiro_api_region_label')}
+                        value={editor.apiRegion}
+                        placeholder={t('auth_files.kiro_api_region_placeholder')}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(e) => onChange('apiRegion', e.target.value)}
+                      />
+                      <Input
+                        label={t('auth_files.kiro_machine_id_label')}
+                        value={editor.machineId}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(e) => onChange('machineId', e.target.value)}
+                      />
+                      <Input
+                        label={t('auth_files.kiro_subscription_title_label')}
+                        value={editor.subscriptionTitle}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(e) => onChange('subscriptionTitle', e.target.value)}
+                      />
+                      <Input
+                        label={t('auth_files.kiro_proxy_username_label')}
+                        value={editor.proxyUsername}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(e) => onChange('proxyUsername', e.target.value)}
+                      />
+                      <Input
+                        label={t('auth_files.kiro_proxy_password_label')}
+                        value={editor.proxyPassword}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        onChange={(e) => onChange('proxyPassword', e.target.value)}
+                      />
+                      <div className="form-group">
+                        <label>{t('auth_files.kiro_disabled_label')}</label>
+                        <ToggleSwitch
+                          checked={Boolean(editor.disabled)}
+                          disabled={disableControls || editor.saving || !editor.json}
+                          ariaLabel={t('auth_files.kiro_disabled_label')}
+                          onChange={(value) => onChange('disabled', value)}
+                        />
+                        <div className="hint">{t('auth_files.kiro_disabled_hint')}</div>
+                      </div>
+                    </>
+                  )}
                   <div className="form-group">
-                    <label>{t('ai_providers.codex_websockets_label')}</label>
-                    <ToggleSwitch
-                      checked={Boolean(editor.websockets)}
+                    <label>{t('auth_files.excluded_models_label')}</label>
+                    <textarea
+                      className="input"
+                      value={editor.excludedModelsText}
+                      placeholder={t('auth_files.excluded_models_placeholder')}
+                      rows={4}
                       disabled={disableControls || editor.saving || !editor.json}
-                      ariaLabel={t('ai_providers.codex_websockets_label')}
-                      onChange={(value) => onChange('websockets', value)}
+                      onChange={(e) => onChange('excludedModelsText', e.target.value)}
                     />
-                    <div className="hint">{t('ai_providers.codex_websockets_hint')}</div>
+                    <div className="hint">{t('auth_files.excluded_models_hint')}</div>
                   </div>
-                )}
-              </div>
+                  <Input
+                    label={t('auth_files.disable_cooling_label')}
+                    value={editor.disableCooling}
+                    placeholder={t('auth_files.disable_cooling_placeholder')}
+                    hint={t('auth_files.disable_cooling_hint')}
+                    disabled={disableControls || editor.saving || !editor.json}
+                    onChange={(e) => onChange('disableCooling', e.target.value)}
+                  />
+                  {editor.isCodexFile && (
+                    <div className="form-group">
+                      <label>{t('auth_files.codex_websockets_label')}</label>
+                      <ToggleSwitch
+                        checked={Boolean(editor.websockets)}
+                        onChange={(value) => onChange('websockets', value)}
+                        disabled={disableControls || editor.saving || !editor.json}
+                        ariaLabel={t('auth_files.codex_websockets_label')}
+                      />
+                      <div className="hint">{t('auth_files.codex_websockets_hint')}</div>
+                    </div>
+                  )}
+                  <div className="form-group">
+                    <label>{t('auth_files.headers_label')}</label>
+                    <textarea
+                      className={`input ${editor.headersError ? styles.prefixProxyTextareaInvalid : ''}`}
+                      value={editor.headersText}
+                      placeholder={t('auth_files.headers_placeholder')}
+                      rows={4}
+                      aria-invalid={Boolean(editor.headersError)}
+                      disabled={disableControls || editor.saving || !editor.json}
+                      onChange={(e) => onChange('headersText', e.target.value)}
+                    />
+                    {editor.headersError && <div className="error-box">{editor.headersError}</div>}
+                    <div className="hint">{t('auth_files.headers_hint')}</div>
+                  </div>
+                  <Input
+                    label={t('auth_files.note_label')}
+                    value={editor.note}
+                    placeholder={t('auth_files.note_placeholder')}
+                    hint={t('auth_files.note_hint')}
+                    disabled={disableControls || editor.saving || !editor.json}
+                    onChange={(e) => onChange('note', e.target.value)}
+                  />
+                </div>
+              )}
             </>
           )}
         </div>
