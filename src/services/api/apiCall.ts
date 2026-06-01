@@ -84,9 +84,9 @@ export const apiCallApi = {
     config?: AxiosRequestConfig
   ): Promise<ApiCallResult> => {
     const response = await apiClient.post<Record<string, unknown>>('/api-call', payload, config);
-    const statusCodeValue = response?.status_code ?? response?.statusCode;
+    const statusCodeValue = response?.status_code;
     const statusCode = Number(statusCodeValue ?? 0);
-    const header = (response?.header ?? response?.headers ?? {}) as Record<string, string[]>;
+    const header = (response?.header ?? {}) as Record<string, string[]>;
     const { bodyText, body } = normalizeBody(response?.body);
 
     return {
