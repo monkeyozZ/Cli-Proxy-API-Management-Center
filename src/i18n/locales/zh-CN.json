@@ -81,6 +81,8 @@
     "remember_password_label": "记住密码",
     "management_key_label": "管理密钥:",
     "management_key_placeholder": "请输入管理密钥",
+    "show_key": "显示密钥",
+    "hide_key": "隐藏密钥",
     "connect_button": "连接",
     "submit_button": "登录",
     "submitting": "连接中...",
@@ -143,7 +145,7 @@
     "config_management": "网关基础配置",
     "system_info": "运行与诊断信息",
     "usage_stats": "使用统计分析",
-    "monitoring_center": "实时请求与用量"
+    "monitoring_center": "请求流量与账号健康"
   },
   "dashboard": {
     "title": "仪表盘",
@@ -519,6 +521,8 @@
     "refresh_just_now": "刚刚",
     "download_button": "下载",
     "delete_button": "删除",
+    "delete_title": "删除文件",
+    "delete_all_title": "删除所有文件",
     "delete_confirm": "确定要删除文件",
     "delete_all_confirm": "确定要删除所有认证文件吗？此操作不可恢复！",
     "delete_filtered_confirm": "确定要删除筛选出的 {{type}} 认证文件吗？此操作不可恢复！",
@@ -859,6 +863,7 @@
     "save_success": "模型禁用已更新",
     "save_failed": "更新模型禁用失败",
     "delete": "删除提供商",
+    "delete_title": "删除提供商",
     "delete_confirm": "确定要删除 {{provider}} 的模型禁用吗？",
     "delete_success": "已删除该提供商的模型禁用",
     "delete_failed": "删除模型禁用失败",
@@ -896,6 +901,7 @@
     "save_success": "模型别名已更新",
     "save_failed": "更新模型别名失败",
     "delete": "删除提供商",
+    "delete_title": "删除提供商",
     "delete_confirm": "确定要删除 {{provider}} 的模型别名吗？",
     "delete_link_title": "取消链接",
     "delete_link_confirm": "确定取消 <code>{{sourceModel}}</code>（{{provider}}）到别名 <code>{{alias}}</code> 的映射？",
@@ -1109,6 +1115,7 @@
     "loading": "正在加载日志...",
     "load_error": "加载日志失败",
     "clear_confirm": "确定要清空所有日志吗？此操作不可恢复！",
+    "clear_confirm_title": "清空日志",
     "clear_success": "日志已清空",
     "download_success": "日志下载成功",
     "auto_refresh": "自动刷新",
@@ -1222,6 +1229,7 @@
     },
     "visual": {
       "notice": "可视化模式覆盖常用字段，未覆盖的配置仍需在源文件模式中查看或编辑。",
+      "validation_blocked_short": "待修复",
       "quick_jump": "快速跳转",
       "sections": {
         "server": {
@@ -1685,7 +1693,9 @@
     "data_refreshed": "数据刷新成功",
     "connection_required": "请先建立连接",
     "refresh_failed": "刷新失败",
+    "load_failed": "加载失败",
     "update_failed": "更新失败",
+    "save_failed": "保存失败",
     "add_failed": "添加失败",
     "delete_failed": "删除失败",
     "upload_failed": "上传失败",
@@ -1720,6 +1730,8 @@
     "auto": "跟随系统"
   },
   "sidebar": {
+    "expand": "展开",
+    "collapse": "收起",
     "toggle_expand": "展开侧边栏",
     "toggle_collapse": "收起侧边栏"
   },
@@ -1777,6 +1789,12 @@
     "export_success": "使用统计已导出",
     "import_success": "导入完成：新增 {{added}}，跳过 {{skipped}}，总请求 {{total}}，失败 {{failed}}",
     "import_invalid": "导入文件格式不正确",
+    "import_unsupported": "{{count}} 条记录不受支持",
+    "import_legacy_warning": "已导入旧版使用统计数据，部分字段可能为推断值。",
+    "import_export_requires_usage_service": "导入/导出需要连接 Usage Service，请从 Docker 面板访问或在系统页配置 Usage Service 地址。",
+    "import_file_too_large": "导入文件过大，最大支持 {{maxSize}}。",
+    "import_confirm_title": "导入使用统计",
+    "import_confirm_body": "确定从 {{name}} 导入请求事件吗？",
     "chart_line_label_1": "曲线 1",
     "chart_line_label_2": "曲线 2",
     "chart_line_label_3": "曲线 3",
@@ -1865,6 +1883,7 @@
     "usage_switch": "使用统计开关",
     "logging_switch": "文件日志开关",
     "request_log_switch": "请求日志开关",
+    "success_rate": "成功率",
     "toolbar_title": "实时筛选与刷新",
     "realtime_console_eyebrow": "实时运行监控",
     "console_subtitle": "按账号和时间范围追踪调用规模、成功失败、Token 结构和花费，并提供接近请求日志的实时监控表。",
@@ -2214,23 +2233,6 @@
     "pagination_info": "第 {{current}} / {{total}} 页 · 显示 {{start}}-{{end}} / {{count}}",
     "page_size_label": "每页",
     "page_size_option": "{{count}} 条/页"
-  },
-  "nav_groups": {
-    "operate": "运行",
-    "gateway": "网关",
-    "observe": "观测",
-    "control": "控制"
-  },
-  "nav_meta": {
-    "dashboard": "运行总览",
-    "ai_providers": "上游模型路由",
-    "auth_files": "Auth 文件与凭证",
-    "oauth": "OAuth 授权登录",
-    "quota_management": "API Key 与限额",
-    "monitoring_center": "请求流量与账号健康",
-    "logs": "请求追踪与排查",
-    "config_management": "网关基础配置",
-    "system_info": "运行与诊断信息"
   },
   "providersPage": {
     "header": {

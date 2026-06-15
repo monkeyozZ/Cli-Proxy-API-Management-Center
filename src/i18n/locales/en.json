@@ -81,6 +81,8 @@
     "remember_password_label": "Remember password",
     "management_key_label": "Management Key:",
     "management_key_placeholder": "Enter the management key",
+    "show_key": "Show key",
+    "hide_key": "Hide key",
     "connect_button": "Connect",
     "submit_button": "Login",
     "submitting": "Connecting...",
@@ -143,7 +145,7 @@
     "config_management": "Gateway configuration",
     "system_info": "Runtime & diagnostics",
     "usage_stats": "Usage analytics",
-    "monitoring_center": "Live requests & usage"
+    "monitoring_center": "Request traffic and account health"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -519,6 +521,8 @@
     "refresh_just_now": "Just now",
     "download_button": "Download",
     "delete_button": "Delete",
+    "delete_title": "Delete File",
+    "delete_all_title": "Delete All Files",
     "delete_confirm": "Are you sure you want to delete file",
     "delete_all_confirm": "Are you sure you want to delete all auth files? This operation cannot be undone!",
     "delete_filtered_confirm": "Are you sure you want to delete all {{type}} auth files? This operation cannot be undone!",
@@ -859,6 +863,7 @@
     "save_success": "Model disablement updated",
     "save_failed": "Failed to update model disablement",
     "delete": "Delete Provider",
+    "delete_title": "Delete Provider",
     "delete_confirm": "Delete model disablement for {{provider}}?",
     "delete_success": "Provider model disablement removed",
     "delete_failed": "Failed to delete model disablement",
@@ -896,6 +901,7 @@
     "save_success": "Model aliases updated",
     "save_failed": "Failed to update model aliases",
     "delete": "Delete Provider",
+    "delete_title": "Delete Provider",
     "delete_confirm": "Delete model aliases for {{provider}}?",
     "delete_link_title": "Unlink mapping",
     "delete_link_confirm": "Unlink mapping from <code>{{sourceModel}}</code> ({{provider}}) to alias <code>{{alias}}</code>?",
@@ -1109,6 +1115,7 @@
     "loading": "Loading logs...",
     "load_error": "Failed to load logs",
     "clear_confirm": "Are you sure you want to clear all logs? This action cannot be undone!",
+    "clear_confirm_title": "Clear Logs",
     "clear_success": "Logs cleared successfully",
     "download_success": "Logs downloaded successfully",
     "auto_refresh": "Auto Refresh",
@@ -1222,6 +1229,7 @@
     },
     "visual": {
       "notice": "Visual mode covers common fields. Review or edit unsupported config.yaml entries in source mode.",
+      "validation_blocked_short": "Fix errors",
       "quick_jump": "Quick Jump",
       "sections": {
         "server": {
@@ -1685,7 +1693,9 @@
     "data_refreshed": "Data refreshed successfully",
     "connection_required": "Please establish connection first",
     "refresh_failed": "Refresh failed",
+    "load_failed": "Load failed",
     "update_failed": "Update failed",
+    "save_failed": "Save failed",
     "add_failed": "Add failed",
     "delete_failed": "Delete failed",
     "upload_failed": "Upload failed",
@@ -1720,6 +1730,8 @@
     "auto": "Follow system"
   },
   "sidebar": {
+    "expand": "Expand",
+    "collapse": "Collapse",
     "toggle_expand": "Expand sidebar",
     "toggle_collapse": "Collapse sidebar"
   },
@@ -1777,6 +1789,12 @@
     "export_success": "Usage export downloaded",
     "import_success": "Import complete: added {{added}}, skipped {{skipped}}, total {{total}}, failed {{failed}}",
     "import_invalid": "Invalid usage export file",
+    "import_unsupported": "{{count}} unsupported records",
+    "import_legacy_warning": "Imported legacy usage data. Some fields may be inferred.",
+    "import_export_requires_usage_service": "Usage import/export requires Usage Service. Open the Docker-hosted panel or configure a Usage Service URL on the System page.",
+    "import_file_too_large": "Import file is too large. Maximum size: {{maxSize}}.",
+    "import_confirm_title": "Import usage data",
+    "import_confirm_body": "Import usage events from {{name}}?",
     "chart_line_label_1": "Line 1",
     "chart_line_label_2": "Line 2",
     "chart_line_label_3": "Line 3",
@@ -1865,6 +1883,7 @@
     "usage_switch": "Usage Stats",
     "logging_switch": "File Logging",
     "request_log_switch": "Request Log",
+    "success_rate": "Success Rate",
     "toolbar_title": "Live Filters & Refresh",
     "realtime_console_eyebrow": "Realtime Runtime Monitor",
     "console_subtitle": "Track call volume, success and failure, token structure, and spend by account within the selected time range, with a live table that behaves more like a request log console.",
@@ -2214,23 +2233,6 @@
     "pagination_info": "Page {{current}} / {{total}} · Showing {{start}}-{{end}} / {{count}}",
     "page_size_label": "Per page",
     "page_size_option": "{{count}} / page"
-  },
-  "nav_groups": {
-    "operate": "Operate",
-    "gateway": "Gateway",
-    "observe": "Observe",
-    "control": "Control"
-  },
-  "nav_meta": {
-    "dashboard": "Operations overview",
-    "ai_providers": "Upstream model routing",
-    "auth_files": "Auth files & credentials",
-    "oauth": "OAuth authorization",
-    "quota_management": "API keys & limits",
-    "monitoring_center": "Request traffic and account health",
-    "logs": "Request tracing",
-    "config_management": "Gateway configuration",
-    "system_info": "Runtime & diagnostics"
   },
   "providersPage": {
     "header": {

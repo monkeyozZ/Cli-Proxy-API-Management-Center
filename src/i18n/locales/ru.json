@@ -81,6 +81,8 @@
     "remember_password_label": "Запомнить пароль",
     "management_key_label": "Ключ управления:",
     "management_key_placeholder": "Введите ключ управления",
+    "show_key": "Показать ключ",
+    "hide_key": "Скрыть ключ",
     "connect_button": "Подключиться",
     "submit_button": "Войти",
     "submitting": "Подключение...",
@@ -128,6 +130,7 @@
     "operate": "Работа",
     "gateway": "Шлюз",
     "observe": "Наблюдение",
+    "plugin_pages": "Плагины",
     "control": "Управление"
   },
   "nav_meta": {
@@ -142,7 +145,7 @@
     "config_management": "Базовая конфигурация шлюза",
     "system_info": "Состояние и диагностика",
     "usage_stats": "Аналитика использования",
-    "monitoring_center": "Запросы и расход в реальном времени"
+    "monitoring_center": "Трафик запросов и состояние аккаунтов"
   },
   "dashboard": {
     "title": "Панель управления",
@@ -518,6 +521,8 @@
     "refresh_just_now": "Только что",
     "download_button": "Скачать",
     "delete_button": "Удалить",
+    "delete_title": "Удалить файл",
+    "delete_all_title": "Удалить все файлы",
     "delete_confirm": "Удалить файл",
     "delete_all_confirm": "Удалить все файлы авторизации? Это действие нельзя отменить!",
     "delete_filtered_confirm": "Удалить все файлы авторизации {{type}}? Это действие нельзя отменить!",
@@ -750,6 +755,13 @@
     "additional_team_secondary_window": "{{name}}: месячный лимит",
     "plan_label": "Тариф",
     "expires_label": "Истекает",
+    "reset_credits_label": "Ручные сбросы",
+    "reset_button": "Сбросить квоту",
+    "reset_confirm_title": "Сброс квоты Codex",
+    "reset_confirm_message": "Будет использован 1 ручной сброс для сброса квоты Codex у \"{{name}}\". Продолжить?",
+    "reset_confirm_button": "Сбросить квоту",
+    "reset_success": "Квота Codex для \"{{name}}\" сброшена",
+    "reset_failed": "Не удалось сбросить квоту Codex для \"{{name}}\": {{message}}",
     "plan_plus": "Plus",
     "plan_team": "Team",
     "plan_free": "Free",
@@ -852,6 +864,7 @@
     "save_success": "Отключение моделей обновлено",
     "save_failed": "Не удалось обновить отключение моделей",
     "delete": "Удалить провайдера",
+    "delete_title": "Удалить провайдера",
     "delete_confirm": "Удалить отключение моделей для {{provider}}?",
     "delete_success": "Отключение моделей провайдера удалено",
     "delete_failed": "Не удалось удалить отключение моделей",
@@ -889,6 +902,7 @@
     "save_success": "Псевдонимы моделей обновлены",
     "save_failed": "Не удалось обновить псевдонимы моделей",
     "delete": "Удалить провайдера",
+    "delete_title": "Удалить провайдера",
     "delete_confirm": "Удалить псевдонимы моделей для {{provider}}?",
     "delete_link_title": "Убрать сопоставление",
     "delete_link_confirm": "Удалить сопоставление из <code>{{sourceModel}}</code> ({{provider}}) к псевдониму <code>{{alias}}</code>?",
@@ -1102,6 +1116,7 @@
     "loading": "Загрузка журналов...",
     "load_error": "Не удалось загрузить журналы",
     "clear_confirm": "Очистить все журналы? Действие нельзя отменить!",
+    "clear_confirm_title": "Очистить журналы",
     "clear_success": "Журналы успешно очищены",
     "download_success": "Журналы успешно скачаны",
     "auto_refresh": "Автообновление",
@@ -1215,6 +1230,7 @@
     },
     "visual": {
       "notice": "Визуальный режим охватывает основные поля. Остальные параметры config.yaml по-прежнему нужно проверять или редактировать в режиме исходника.",
+      "validation_blocked_short": "Есть ошибки",
       "quick_jump": "Быстрый переход",
       "sections": {
         "server": {
@@ -1580,6 +1596,16 @@
     "gate_step3_action": "Установить этот плагин",
     "gate_step3_hint": "Введите точный идентификатор, показанный выше, чтобы включить установку."
   },
+  "plugin_resource": {
+    "title": "Страница плагина",
+    "page_count": "{{count}} страниц",
+    "load_failed": "Не удалось загрузить страницу плагина",
+    "unavailable": "Страница плагина недоступна",
+    "not_found": "Страница плагина не найдена",
+    "not_found_desc": "Эта страница плагина не объявлена в текущем списке плагинов backend.",
+    "empty_src": "URL страницы плагина пуст",
+    "empty_src_desc": "Это меню плагина не предоставляет URL для встроенной страницы."
+  },
   "system_info": {
     "title": "Информация о центре управления",
     "about_title": "CLI Proxy API Management Center",
@@ -1670,7 +1696,9 @@
     "data_refreshed": "Данные успешно обновлены",
     "connection_required": "Сначала установите подключение",
     "refresh_failed": "Не удалось обновить",
+    "load_failed": "Не удалось загрузить",
     "update_failed": "Не удалось обновить",
+    "save_failed": "Не удалось сохранить",
     "add_failed": "Не удалось добавить",
     "delete_failed": "Не удалось удалить",
     "upload_failed": "Не удалось загрузить",
@@ -1705,6 +1733,8 @@
     "auto": "Следовать системе"
   },
   "sidebar": {
+    "expand": "Развернуть",
+    "collapse": "Свернуть",
     "toggle_expand": "Развернуть боковую панель",
     "toggle_collapse": "Свернуть боковую панель"
   },
@@ -1762,6 +1792,12 @@
     "export_success": "Экспорт использования скачан",
     "import_success": "Импорт завершён: добавлено {{added}}, пропущено {{skipped}}, всего {{total}}, ошибок {{failed}}",
     "import_invalid": "Недопустимый файл экспорта использования",
+    "import_unsupported": "Неподдерживаемых записей: {{count}}",
+    "import_legacy_warning": "Импортированы устаревшие данные использования. Некоторые поля могут быть вычислены приблизительно.",
+    "import_export_requires_usage_service": "Для импорта/экспорта использования нужен Usage Service. Откройте Docker-панель или укажите URL Usage Service на странице системы.",
+    "import_file_too_large": "Файл импорта слишком большой. Максимальный размер: {{maxSize}}.",
+    "import_confirm_title": "Импорт данных использования",
+    "import_confirm_body": "Импортировать события использования из {{name}}?",
     "chart_line_label_1": "Линия 1",
     "chart_line_label_2": "Линия 2",
     "chart_line_label_3": "Линия 3",
@@ -1850,6 +1886,7 @@
     "usage_switch": "Статистика использования",
     "logging_switch": "Логирование в файл",
     "request_log_switch": "Журнал запросов",
+    "success_rate": "Успешность",
     "toolbar_title": "Фильтры и обновление",
     "realtime_console_eyebrow": "Realtime Runtime Monitor",
     "console_subtitle": "Отслеживайте объём вызовов, успехи и ошибки, структуру token и расходы по аккаунтам в выбранном диапазоне времени, с живой таблицей в стиле request log.",
@@ -2199,23 +2236,6 @@
     "pagination_info": "Страница {{current}} / {{total}} · Показано {{start}}-{{end}} / {{count}}",
     "page_size_label": "На странице",
     "page_size_option": "{{count}} / стр."
-  },
-  "nav_groups": {
-    "operate": "Работа",
-    "gateway": "Шлюз",
-    "observe": "Наблюдение",
-    "control": "Управление"
-  },
-  "nav_meta": {
-    "dashboard": "Обзор работы",
-    "ai_providers": "Маршрутизация моделей",
-    "auth_files": "Файлы и учётные данные",
-    "oauth": "Авторизация OAuth",
-    "quota_management": "API ключи и лимиты",
-    "monitoring_center": "Трафик запросов и состояние аккаунтов",
-    "logs": "Трассировка запросов",
-    "config_management": "Базовая конфигурация шлюза",
-    "system_info": "Состояние и диагностика"
   },
   "providersPage": {
     "header": {
