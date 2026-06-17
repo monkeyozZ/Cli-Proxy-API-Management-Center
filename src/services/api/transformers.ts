@@ -301,6 +301,7 @@ export const normalizeConfigResponse = (raw: unknown): Config => {
     };
   }
 
+  config.usageStatisticsEnabled = normalizeBoolean(raw['usage-statistics-enabled']);
   config.requestLog = normalizeBoolean(raw['request-log']);
   config.loggingToFile = normalizeBoolean(raw['logging-to-file']);
   const logsMaxTotalSizeMb = raw['logs-max-total-size-mb'];
