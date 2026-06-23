@@ -5,7 +5,6 @@ import {
   ANTIGRAVITY_CONFIG,
   CLAUDE_CONFIG,
   CODEX_CONFIG,
-  GEMINI_CLI_CONFIG,
   KIMI_CONFIG,
   KIRO_CONFIG,
   XAI_CONFIG,
@@ -25,6 +24,10 @@ import styles from '@/pages/AuthFilesPage.module.scss';
 
 type QuotaState = { status?: string; error?: string; errorStatus?: number } | undefined;
 
+const assertNever = (value: never): never => {
+  throw new Error(`Unsupported quota type: ${value}`);
+};
+
 const getQuotaConfig = (type: QuotaProviderType) => {
   if (type === 'antigravity') return ANTIGRAVITY_CONFIG;
   if (type === 'claude') return CLAUDE_CONFIG;
@@ -32,7 +35,7 @@ const getQuotaConfig = (type: QuotaProviderType) => {
   if (type === 'kimi') return KIMI_CONFIG;
   if (type === 'kiro') return KIRO_CONFIG;
   if (type === 'xai') return XAI_CONFIG;
-  return GEMINI_CLI_CONFIG;
+  return assertNever(type);
 };
 
 export type AuthFileQuotaSectionProps = {
@@ -55,7 +58,7 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
     if (quotaType === 'kimi') return state.kimiQuota[file.name] as QuotaState;
     if (quotaType === 'kiro') return state.kiroQuota[file.name] as QuotaState;
     if (quotaType === 'xai') return state.xaiQuota[file.name] as QuotaState;
-    return state.geminiCliQuota[file.name] as QuotaState;
+    return assertNever(quotaType);
   });
 
   const updateQuotaState = useQuotaStore((state) => {
@@ -67,7 +70,7 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
     if (quotaType === 'kimi') return state.setKimiQuota as unknown as (updater: unknown) => void;
     if (quotaType === 'kiro') return state.setKiroQuota as unknown as (updater: unknown) => void;
     if (quotaType === 'xai') return state.setXaiQuota as unknown as (updater: unknown) => void;
-    return state.setGeminiCliQuota as unknown as (updater: unknown) => void;
+    return assertNever(quotaType);
   });
 
   const refreshQuotaForFile = useCallback(async () => {

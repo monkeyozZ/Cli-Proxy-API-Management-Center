@@ -12,7 +12,6 @@ import {
   ANTIGRAVITY_CONFIG,
   CLAUDE_CONFIG,
   CODEX_CONFIG,
-  GEMINI_CLI_CONFIG,
   KIMI_CONFIG,
   KIRO_CONFIG,
   XAI_CONFIG,
@@ -79,12 +78,6 @@ export function QuotaPage() {
       />
       <QuotaSection
         config={XAI_CONFIG}
-        files={files}
-        loading={loading}
-        disabled={disableControls}
-      />
-      <QuotaSection
-        config={GEMINI_CLI_CONFIG}
         files={files}
         loading={loading}
         disabled={disableControls}

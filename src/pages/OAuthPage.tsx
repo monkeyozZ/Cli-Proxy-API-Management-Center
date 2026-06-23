@@ -13,7 +13,6 @@ import styles from './OAuthPage.module.scss';
 import iconCodex from '@/assets/icons/codex.svg';
 import iconClaude from '@/assets/icons/claude.svg';
 import iconAntigravity from '@/assets/icons/antigravity.svg';
-import iconGemini from '@/assets/icons/gemini.svg';
 import iconKimiLight from '@/assets/icons/kimi-light.svg';
 import iconKimiDark from '@/assets/icons/kimi-dark.svg';
 import iconKiro from '@/assets/icons/kiro.svg';
@@ -27,8 +26,6 @@ interface ProviderState {
   status?: 'idle' | 'waiting' | 'success' | 'error';
   error?: string;
   polling?: boolean;
-  projectId?: string;
-  projectIdError?: string;
   callbackUrl?: string;
   callbackSubmitting?: boolean;
   callbackStatus?: 'success' | 'error';
@@ -60,7 +57,6 @@ const PROVIDERS: { id: OAuthProvider; titleKey: string; hintKey: string; urlLabe
   { id: 'codex', titleKey: 'auth_login.codex_oauth_title', hintKey: 'auth_login.codex_oauth_hint', urlLabelKey: 'auth_login.codex_oauth_url_label', icon: iconCodex },
   { id: 'anthropic', titleKey: 'auth_login.anthropic_oauth_title', hintKey: 'auth_login.anthropic_oauth_hint', urlLabelKey: 'auth_login.anthropic_oauth_url_label', icon: iconClaude },
   { id: 'antigravity', titleKey: 'auth_login.antigravity_oauth_title', hintKey: 'auth_login.antigravity_oauth_hint', urlLabelKey: 'auth_login.antigravity_oauth_url_label', icon: iconAntigravity },
-  { id: 'gemini-cli', titleKey: 'auth_login.gemini_cli_oauth_title', hintKey: 'auth_login.gemini_cli_oauth_hint', urlLabelKey: 'auth_login.gemini_cli_oauth_url_label', icon: iconGemini },
   { id: 'kiro', titleKey: 'auth_login.kiro_oauth_title', hintKey: 'auth_login.kiro_oauth_hint', urlLabelKey: 'auth_login.kiro_oauth_url_label', icon: iconKiro },
   { id: 'kimi', titleKey: 'auth_login.kimi_oauth_title', hintKey: 'auth_login.kimi_oauth_hint', urlLabelKey: 'auth_login.kimi_oauth_url_label', icon: { light: iconKimiLight, dark: iconKimiDark } },
   { id: 'xai', titleKey: 'auth_login.xai_oauth_title', hintKey: 'auth_login.xai_oauth_hint', urlLabelKey: 'auth_login.xai_oauth_url_label', icon: { light: iconGrok, dark: iconGrokDark } }
@@ -70,7 +66,6 @@ const CALLBACK_SUPPORTED: OAuthProvider[] = [
   'codex',
   'anthropic',
   'antigravity',
-  'gemini-cli',
   'kiro',
   'xai'
 ];
@@ -218,14 +213,9 @@ export function OAuthPage() {
   const resetProviderAttempt = (provider: OAuthProvider) => {
     clearProviderTimers(provider);
     setStates((prev) => {
-      const current = prev[provider] ?? {};
-      const next: ProviderState = {};
-      if (provider === 'gemini-cli' && current.projectId !== undefined) {
-        next.projectId = current.projectId;
-      }
       return {
         ...prev,
-        [provider]: next
+        [provider]: {}
       };
     });
   };
@@ -277,17 +267,6 @@ export function OAuthPage() {
 
   const startAuth = async (provider: OAuthProvider) => {
     clearProviderTimers(provider);
-    const geminiState = provider === 'gemini-cli' ? states[provider] : undefined;
-    const rawProjectId = provider === 'gemini-cli' ? (geminiState?.projectId || '').trim() : '';
-    const projectId = rawProjectId
-      ? rawProjectId.toUpperCase() === 'ALL'
-        ? 'ALL'
-        : rawProjectId
-      : undefined;
-    // 项目 ID 可选：留空自动选择第一个可用项目；输入 ALL 获取全部项目
-    if (provider === 'gemini-cli') {
-      updateProviderState(provider, { projectIdError: undefined });
-    }
     updateProviderState(provider, {
       url: undefined,
       state: undefined,
@@ -299,10 +278,7 @@ export function OAuthPage() {
       callbackUrl: ''
     });
     try {
-      const res = await oauthApi.startAuth(
-        provider,
-        provider === 'gemini-cli' ? { projectId: projectId || undefined } : undefined
-      );
+      const res = await oauthApi.startAuth(provider);
       if (!res.state) {
         const message = t('auth_login.missing_state');
         updateProviderState(provider, {
@@ -478,24 +454,6 @@ export function OAuthPage() {
               >
                 <div className={styles.cardContent}>
                   <div className={styles.cardHint}>{t(provider.hintKey)}</div>
-                  {provider.id === 'gemini-cli' && (
-                    <div className={styles.geminiProjectField}>
-                      <Input
-                        label={t('auth_login.gemini_cli_project_id_label')}
-                        hint={t('auth_login.gemini_cli_project_id_hint')}
-                        value={state.projectId || ''}
-                        error={state.projectIdError}
-                        disabled={Boolean(state.polling)}
-                        onChange={(e) =>
-                          updateProviderState(provider.id, {
-                            projectId: e.target.value,
-                            projectIdError: undefined
-                          })
-                        }
-                        placeholder={t('auth_login.gemini_cli_project_id_placeholder')}
-                      />
-                    </div>
-                  )}
                   {state.url && (
                     <div className={styles.authUrlBox}>
                       <div className={styles.authUrlLabel}>{t(provider.urlLabelKey)}</div>
