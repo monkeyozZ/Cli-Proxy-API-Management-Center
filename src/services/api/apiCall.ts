@@ -77,10 +77,7 @@ export const getApiCallErrorMessage = (result: ApiCallResult): string => {
 };
 
 export const apiCallApi = {
-  request: async (
-    payload: ApiCallRequest,
-    config?: AxiosRequestConfig
-  ): Promise<ApiCallResult> => {
+  request: async (payload: ApiCallRequest, config?: AxiosRequestConfig): Promise<ApiCallResult> => {
     const response = await apiClient.post<Record<string, unknown>>('/api-call', payload, config);
     const statusCodeValue = response?.status_code;
     const statusCode = Number(statusCodeValue ?? 0);
@@ -92,7 +89,7 @@ export const apiCallApi = {
       hasStatusCode: statusCodeValue !== undefined && statusCodeValue !== null,
       header,
       bodyText,
-      body
+      body,
     };
-  }
+  },
 };
