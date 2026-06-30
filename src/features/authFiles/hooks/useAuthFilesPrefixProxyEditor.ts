@@ -7,13 +7,14 @@ import { formatFileSize } from '@/utils/format';
 import { MAX_AUTH_FILE_SIZE } from '@/utils/constants';
 import { isKiroFile } from '@/utils/quota';
 import {
-  applyCodexAuthFileWebsockets,
+  applyAuthFileWebsockets,
   normalizeExcludedModels,
   normalizeProviderKey,
   parseDisableCoolingValue,
   parseExcludedModelsText,
   parsePriorityValue,
-  readCodexAuthFileWebsockets,
+  readAuthFileWebsockets,
+  supportsAuthFileWebsockets,
 } from '@/features/authFiles/constants';
 
 type AuthFileHeaders = Record<string, string>;
@@ -345,7 +346,9 @@ const buildPrefixProxyUpdatedText = (
   }
 
   return JSON.stringify(
-    editor.isCodexFile ? applyCodexAuthFileWebsockets(next, editor.websockets) : next
+    supportsAuthFileWebsockets(editor.providerKey)
+      ? applyAuthFileWebsockets(next, editor.websockets)
+      : next
   );
 };
 
@@ -464,8 +467,8 @@ export function useAuthFilesPrefixProxyEditor(
       );
       const resolvedIsCodexFile = providerKey === 'codex';
       const resolvedIsKiroFile = isKiroAuthFile || providerKey === 'kiro';
-      if (resolvedIsCodexFile) {
-        const normalizedWebsockets = readCodexAuthFileWebsockets(json);
+      if (supportsAuthFileWebsockets(providerKey)) {
+        const normalizedWebsockets = readAuthFileWebsockets(json);
         delete json.websocket;
         json.websockets = normalizedWebsockets;
       }
@@ -480,7 +483,9 @@ export function useAuthFilesPrefixProxyEditor(
       const priority = parsePriorityValue(json.priority);
       const excludedModels = normalizeExcludedModels(json.excluded_models);
       const disableCoolingValue = parseDisableCoolingValue(json.disable_cooling);
-      const websocketsValue = resolvedIsCodexFile ? readCodexAuthFileWebsockets(json) : false;
+      const websocketsValue = supportsAuthFileWebsockets(providerKey)
+        ? readAuthFileWebsockets(json)
+        : false;
       const note = typeof json.note === 'string' ? json.note : '';
       const headers = json.headers;
       let headersText = '';
