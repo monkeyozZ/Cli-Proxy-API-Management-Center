@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { authFilesApi } from '@/services/api';
+import { authFilesApi, type AuthFileFieldsPatch } from '@/services/api';
 import type { AuthFileItem } from '@/types';
 import { useNotificationStore } from '@/stores';
 import { formatFileSize } from '@/utils/format';
@@ -8,13 +8,16 @@ import { MAX_AUTH_FILE_SIZE } from '@/utils/constants';
 import { isKiroFile } from '@/utils/quota';
 import {
   applyAuthFileWebsockets,
+  applyAuthFileUsingApi,
   normalizeExcludedModels,
   normalizeProviderKey,
   parseDisableCoolingValue,
   parseExcludedModelsText,
   parsePriorityValue,
   readAuthFileWebsockets,
+  readAuthFileUsingApi,
   supportsAuthFileWebsockets,
+  supportsAuthFileUsingApi,
 } from '@/features/authFiles/constants';
 
 type AuthFileHeaders = Record<string, string>;
@@ -57,6 +60,7 @@ export type PrefixProxyEditorField =
   | 'excludedModelsText'
   | 'disableCooling'
   | 'websockets'
+  | 'usingApi'
   | 'note'
   | 'headersText'
   | 'disabled'
@@ -83,6 +87,9 @@ export type PrefixProxyEditorState = {
   excludedModelsText: string;
   disableCooling: string;
   websockets: boolean;
+  websocketsTouched: boolean;
+  usingApi: boolean;
+  usingApiTouched: boolean;
   note: string;
   noteTouched: boolean;
   headersText: string;
@@ -159,6 +166,50 @@ const parseHeadersText = (
 
   return { value: parsed as AuthFileHeaders, errorKey: null };
 };
+
+const normalizeTextField = (value: unknown): string =>
+  typeof value === 'string' ? value.trim() : '';
+
+const hasKeys = (value: Record<string, unknown> | AuthFileFieldsPatch | null): boolean =>
+  Boolean(value && Object.keys(value).length > 0);
+
+const normalizeHeaders = (value: unknown): AuthFileHeaders => {
+  if (!isRecordObject(value)) return {};
+
+  return Object.entries(value).reduce<AuthFileHeaders>((result, [key, rawValue]) => {
+    if (typeof rawValue !== 'string') return result;
+    const name = key.trim();
+    const headerValue = rawValue.trim();
+    if (!name || !headerValue) return result;
+    result[name] = headerValue;
+    return result;
+  }, {});
+};
+
+const buildHeadersPatch = (
+  originalHeaders: AuthFileHeaders,
+  nextHeaders: AuthFileHeaders
+): AuthFileHeaders | undefined => {
+  const patch: AuthFileHeaders = {};
+  const nextNames = new Set(Object.keys(nextHeaders));
+
+  Object.entries(nextHeaders).forEach(([name, value]) => {
+    if (originalHeaders[name] !== value) {
+      patch[name] = value;
+    }
+  });
+
+  Object.keys(originalHeaders).forEach((name) => {
+    if (!nextNames.has(name)) {
+      patch[name] = '';
+    }
+  });
+
+  return Object.keys(patch).length > 0 ? patch : undefined;
+};
+
+const sameStringArray = (left: string[], right: string[]): boolean =>
+  left.length === right.length && left.every((value, index) => value === right[index]);
 
 const INVALID_CONTENT_PREVIEW_LIMIT = 1000;
 
@@ -277,12 +328,101 @@ const normalizeKiroJsonObject = (value: Record<string, unknown>): Record<string,
   return normalized;
 };
 
+const buildAuthFileFieldsPatch = (
+  editor: PrefixProxyEditorState,
+  resolveHeadersError: (key: AuthFileHeadersErrorKey) => string
+): AuthFileFieldsPatch => {
+  const original = editor.json ?? {};
+  const patch: AuthFileFieldsPatch = {};
+
+  const originalPrefix = normalizeTextField(original.prefix);
+  const nextPrefix = editor.prefix.trim();
+  if (nextPrefix !== originalPrefix) {
+    patch.prefix = nextPrefix;
+  }
+
+  const originalProxyURL = normalizeTextField(original.proxy_url);
+  const nextProxyURL = editor.proxyUrl.trim();
+  if (nextProxyURL !== originalProxyURL) {
+    patch.proxy_url = nextProxyURL;
+  }
+
+  const originalPriority = parsePriorityValue(original.priority);
+  const priorityText = editor.priority.trim();
+  const nextPriority = parsePriorityValue(priorityText);
+  if (!priorityText) {
+    if (originalPriority !== undefined && originalPriority !== 0) {
+      patch.priority = 0;
+    }
+  } else if (nextPriority !== undefined) {
+    if (nextPriority === 0) {
+      if (originalPriority !== undefined && originalPriority !== 0) {
+        patch.priority = 0;
+      }
+    } else if (nextPriority !== originalPriority) {
+      patch.priority = nextPriority;
+    }
+  }
+
+  const originalExcludedModels = normalizeExcludedModels(original.excluded_models);
+  const nextExcludedModels = parseExcludedModelsText(editor.excludedModelsText);
+  if (!sameStringArray(originalExcludedModels, nextExcludedModels)) {
+    patch.excluded_models = nextExcludedModels;
+  }
+
+  const originalDisableCooling = parseDisableCoolingValue(original.disable_cooling);
+  const nextDisableCooling = parseDisableCoolingValue(editor.disableCooling);
+  if (nextDisableCooling !== originalDisableCooling) {
+    patch.disable_cooling = nextDisableCooling ?? null;
+  }
+
+  if (editor.noteTouched) {
+    const originalNote = normalizeTextField(original.note);
+    const nextNote = editor.note.trim();
+    if (nextNote !== originalNote) {
+      patch.note = nextNote;
+    }
+  }
+
+  if (supportsAuthFileWebsockets(editor.providerKey) && editor.websocketsTouched) {
+    const originalWebsockets = readAuthFileWebsockets(original);
+    const nextWebsockets = Boolean(editor.websockets);
+    if (nextWebsockets !== originalWebsockets) {
+      patch.websockets = nextWebsockets;
+    }
+  }
+
+  if (supportsAuthFileUsingApi(editor.providerKey) && editor.usingApiTouched) {
+    const originalUsingApi = readAuthFileUsingApi(original);
+    const nextUsingApi = Boolean(editor.usingApi);
+    if (nextUsingApi !== originalUsingApi) {
+      patch.using_api = nextUsingApi;
+    }
+  }
+
+  if (editor.headersTouched) {
+    const { value: parsedHeaders, errorKey } = parseHeadersText(editor.headersText);
+    if (errorKey) {
+      throw new Error(resolveHeadersError(errorKey));
+    }
+    const headersPatch = buildHeadersPatch(
+      normalizeHeaders(original.headers),
+      normalizeHeaders(parsedHeaders ?? {})
+    );
+    if (headersPatch) {
+      patch.headers = headersPatch;
+    }
+  }
+
+  return patch;
+};
+
 const buildPrefixProxyUpdatedText = (
   editor: PrefixProxyEditorState | null,
   resolveHeadersError: (key: AuthFileHeadersErrorKey) => string
 ): string => {
   if (!editor?.json) return editor?.rawText ?? '';
-  const next: Record<string, unknown> = { ...editor.json };
+  let next: Record<string, unknown> = { ...editor.json };
 
   if (editor.isKiroFile) {
     next.type = 'kiro';
@@ -345,11 +485,15 @@ const buildPrefixProxyUpdatedText = (
     next.disabled = editor.disabled;
   }
 
-  return JSON.stringify(
-    supportsAuthFileWebsockets(editor.providerKey)
-      ? applyAuthFileWebsockets(next, editor.websockets)
-      : next
-  );
+  if (supportsAuthFileWebsockets(editor.providerKey) && editor.websocketsTouched) {
+    next = applyAuthFileWebsockets(next, editor.websockets);
+  }
+
+  if (supportsAuthFileUsingApi(editor.providerKey) && editor.usingApiTouched) {
+    next = applyAuthFileUsingApi(next, editor.usingApi);
+  }
+
+  return JSON.stringify(next);
 };
 
 export function useAuthFilesPrefixProxyEditor(
@@ -369,10 +513,16 @@ export function useAuthFilesPrefixProxyEditor(
       ? buildPrefixProxyUpdatedText(prefixProxyEditor, (key) => t(key))
       : '';
 
+  const prefixProxyPatch =
+    prefixProxyEditor?.json && !hasBlockingValidationError
+      ? buildAuthFileFieldsPatch(prefixProxyEditor, (key) => t(key))
+      : null;
+
   const prefixProxyDirty =
-    Boolean(prefixProxyEditor?.json) &&
-    Boolean(prefixProxyEditor?.originalText) &&
-    (prefixProxyUpdatedText === '' || prefixProxyUpdatedText !== prefixProxyEditor?.originalText);
+    prefixProxyEditor?.isKiroFile === true
+      ? Boolean(prefixProxyEditor.originalText) &&
+        prefixProxyUpdatedText !== prefixProxyEditor.originalText
+      : hasKeys(prefixProxyPatch);
 
   const closePrefixProxyEditor = () => {
     setPrefixProxyEditor(null);
@@ -409,6 +559,9 @@ export function useAuthFilesPrefixProxyEditor(
       excludedModelsText: '',
       disableCooling: '',
       websockets: false,
+      websocketsTouched: false,
+      usingApi: false,
+      usingApiTouched: false,
       note: '',
       noteTouched: false,
       headersText: '',
@@ -486,6 +639,7 @@ export function useAuthFilesPrefixProxyEditor(
       const websocketsValue = supportsAuthFileWebsockets(providerKey)
         ? readAuthFileWebsockets(json)
         : false;
+      const usingApi = supportsAuthFileUsingApi(providerKey) ? readAuthFileUsingApi(json) : false;
       const note = typeof json.note === 'string' ? json.note : '';
       const headers = json.headers;
       let headersText = '';
@@ -515,6 +669,9 @@ export function useAuthFilesPrefixProxyEditor(
           disableCooling:
             disableCoolingValue === undefined ? '' : disableCoolingValue ? 'true' : 'false',
           websockets: websocketsValue,
+          websocketsTouched: false,
+          usingApi,
+          usingApiTouched: false,
           note,
           noteTouched: false,
           headersText,
@@ -560,6 +717,12 @@ export function useAuthFilesPrefixProxyEditor(
       if (field === 'priority') return { ...prev, priority: String(value) };
       if (field === 'excludedModelsText') return { ...prev, excludedModelsText: String(value) };
       if (field === 'disableCooling') return { ...prev, disableCooling: String(value) };
+      if (field === 'websockets') {
+        return { ...prev, websockets: Boolean(value), websocketsTouched: true };
+      }
+      if (field === 'usingApi') {
+        return { ...prev, usingApi: Boolean(value), usingApiTouched: true };
+      }
       if (field === 'note') return { ...prev, note: String(value), noteTouched: true };
       if (field === 'disabled') return { ...prev, disabled: Boolean(value) };
       if (field === 'headersText') {
@@ -571,9 +734,6 @@ export function useAuthFilesPrefixProxyEditor(
           headersTouched: true,
           headersError: errorKey ? t(errorKey) : null,
         };
-      }
-      if (field === 'websockets') {
-        return { ...prev, websockets: Boolean(value) };
       }
       if (KIRO_TEXT_FIELD_NAMES.has(field as KiroTextEditorField)) {
         return {
@@ -590,23 +750,29 @@ export function useAuthFilesPrefixProxyEditor(
     if (!prefixProxyDirty) return;
 
     const name = prefixProxyEditor.fileName;
-    let payload = '';
+    let payloadText = '';
+    let fieldsPatch: AuthFileFieldsPatch = {};
     try {
-      payload = buildPrefixProxyUpdatedText(prefixProxyEditor, (key) => t(key));
+      if (prefixProxyEditor.isKiroFile) {
+        payloadText = buildPrefixProxyUpdatedText(prefixProxyEditor, (key) => t(key));
+      } else {
+        fieldsPatch = buildAuthFileFieldsPatch(prefixProxyEditor, (key) => t(key));
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid format';
       showNotification(errorMessage, 'error');
       return;
     }
 
-    const fileSize = new Blob([payload]).size;
-    if (fileSize > MAX_AUTH_FILE_SIZE) {
+    const fileSize = new Blob([payloadText]).size;
+    if (prefixProxyEditor.isKiroFile && fileSize > MAX_AUTH_FILE_SIZE) {
       showNotification(
         t('auth_files.upload_error_size', { maxSize: formatFileSize(MAX_AUTH_FILE_SIZE) }),
         'error'
       );
       return;
     }
+    if (!prefixProxyEditor.isKiroFile && !hasKeys(fieldsPatch)) return;
 
     setPrefixProxyEditor((prev) => {
       if (!prev || prev.fileName !== name) return prev;
@@ -614,7 +780,11 @@ export function useAuthFilesPrefixProxyEditor(
     });
 
     try {
-      await authFilesApi.saveText(name, payload);
+      if (prefixProxyEditor.isKiroFile) {
+        await authFilesApi.saveText(name, payloadText);
+      } else {
+        await authFilesApi.patchFields(name, fieldsPatch);
+      }
       showNotification(t('auth_files.prefix_proxy_saved_success', { name }), 'success');
       await loadFiles();
       await loadKeyStats?.();

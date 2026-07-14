@@ -125,37 +125,6 @@
   }
 }
 
-.antigravityControls,
-.claudeControls,
-.codexControls,
-.kimiControls,
-.kiroControls,
-.xaiControls {
-  display: flex;
-  gap: $spacing-md;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  margin-bottom: $spacing-md;
-}
-
-.antigravityControl,
-.claudeControl,
-.codexControl,
-.kimiControl,
-.kiroControl,
-.xaiControl {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-
-  label {
-    font-size: 12px;
-    color: var(--text-secondary);
-    font-weight: 500;
-    white-space: nowrap;
-  }
-}
-
 .viewModeToggle {
   display: inline-flex;
   gap: $spacing-xs;

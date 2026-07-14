@@ -235,9 +235,12 @@ type AccountQuotaState = {
   targetKey: string;
   providerType: AccountQuotaProviderType | 'mixed' | null;
   entries: AccountQuotaEntry[];
+  requestId?: number;
   error?: string;
   lastRefreshedAt?: number;
 };
+
+let nextAccountQuotaRequestId = 0;
 
 type AccountOverviewColumn = {
   key: string;
@@ -2069,28 +2072,25 @@ export function MonitoringCenterPage() {
   const [accountQuotaStates, setAccountQuotaStates] = useState<Record<string, AccountQuotaState>>(
     {}
   );
-  const initialAccountOverviewUiState = useRef(readAccountOverviewUiState());
+  const [initialAccountOverviewUiState] = useState(readAccountOverviewUiState);
+  const [initialAccountStatusNowMs] = useState(Date.now);
   const [accountOverviewMode, setAccountOverviewMode] = useState<MonitoringAccountOverviewMode>(
-    initialAccountOverviewUiState.current.mode
+    initialAccountOverviewUiState.mode
   );
-  const [accountSort, setAccountSort] = useState<AccountSortState>(
-    initialAccountOverviewUiState.current.sort
-  );
+  const [accountSort, setAccountSort] = useState<AccountSortState>(initialAccountOverviewUiState.sort);
   const [accountPageByMode, setAccountPageByMode] = useState(() => ({
     table: 1,
-    card: initialAccountOverviewUiState.current.cardPagination.page,
+    card: initialAccountOverviewUiState.cardPagination.page,
   }));
   const [accountPageSizeByMode, setAccountPageSizeByMode] = useState(() => ({
     table: DEFAULT_ACCOUNT_PAGE_SIZE,
-    card: initialAccountOverviewUiState.current.cardPagination.pageSize,
+    card: initialAccountOverviewUiState.cardPagination.pageSize,
   }));
   const [accountStatusUpdating, setAccountStatusUpdating] = useState<Record<string, boolean>>({});
   const [realtimePage, setRealtimePage] = useState(1);
   const [realtimePageSize, setRealtimePageSize] = useState(DEFAULT_REALTIME_PAGE_SIZE);
   const focusSnapshotRef = useRef<FocusSnapshot | null>(null);
   const previousAccountPageResetStateRef = useRef<AccountOverviewPageResetState | null>(null);
-  const accountQuotaStatesRef = useRef<Record<string, AccountQuotaState>>({});
-  const accountQuotaRequestIdsRef = useRef<Record<string, number>>({});
   const usageImportInputRef = useRef<HTMLInputElement | null>(null);
   const deferredSearch = useDeferredValue(searchInput);
   const accountPage =
@@ -2203,10 +2203,6 @@ export function MonitoringCenterPage() {
   const overallLoading = usageLoading || monitoringLoading;
   const combinedError = [usageError, monitoringError].filter(Boolean).join('；');
   const hasPrices = Object.keys(modelPrices).length > 0;
-
-  useEffect(() => {
-    accountQuotaStatesRef.current = accountQuotaStates;
-  }, [accountQuotaStates]);
 
   useEffect(() => {
     writeAccountOverviewUiState({
@@ -2339,7 +2335,7 @@ export function MonitoringCenterPage() {
     () => scopedRows.filter((row) => row.statsIncluded),
     [scopedRows]
   );
-  const accountStatusNowMs = lastRefreshedAt?.getTime() ?? Date.now();
+  const accountStatusNowMs = lastRefreshedAt?.getTime() ?? initialAccountStatusNowMs;
   const accountStatusBounds = useMemo(
     () => getRangeBounds(timeRange, accountStatusNowMs, customTimeRange),
     [accountStatusNowMs, customTimeRange, timeRange]
@@ -2631,7 +2627,7 @@ export function MonitoringCenterPage() {
 
   const loadAccountQuota = useCallback(
     async (rowId: string, force: boolean = false) => {
-      const currentState = accountQuotaStatesRef.current[rowId];
+      const currentState = accountQuotaStates[rowId];
       const targets = accountQuotaTargetsByRowId.get(rowId) ?? [];
       const providerType = getAccountQuotaProviderType(targets);
       const targetKey = targets.map((target) => target.key).join('|');
@@ -2644,8 +2640,7 @@ export function MonitoringCenterPage() {
         return;
       }
 
-      const requestId = (accountQuotaRequestIdsRef.current[rowId] ?? 0) + 1;
-      accountQuotaRequestIdsRef.current[rowId] = requestId;
+      const requestId = ++nextAccountQuotaRequestId;
 
       setAccountQuotaStates((previous) => ({
         ...previous,
@@ -2653,6 +2648,7 @@ export function MonitoringCenterPage() {
           status: 'loading',
           targetKey,
           providerType,
+          requestId,
           entries:
             previous[rowId]?.targetKey === targetKey ? (previous[rowId]?.entries ?? []) : [],
           lastRefreshedAt: previous[rowId]?.lastRefreshedAt,
@@ -2660,24 +2656,26 @@ export function MonitoringCenterPage() {
       }));
 
       if (targets.length === 0) {
-        if (accountQuotaRequestIdsRef.current[rowId] !== requestId) return;
-        setAccountQuotaStates((previous) => ({
-          ...previous,
-          [rowId]: {
-            status: 'success',
-            targetKey,
-            providerType,
-            entries: [],
-            lastRefreshedAt: Date.now(),
-          },
-        }));
+        setAccountQuotaStates((previous) => {
+          if (previous[rowId]?.requestId !== requestId) return previous;
+          return {
+            ...previous,
+            [rowId]: {
+              status: 'success',
+              targetKey,
+              providerType,
+              requestId,
+              entries: [],
+              lastRefreshedAt: Date.now(),
+            },
+          };
+        });
         return;
       }
 
       const settled = await Promise.allSettled(
         targets.map((target) => requestAccountQuota(target, t))
       );
-      if (accountQuotaRequestIdsRef.current[rowId] !== requestId) return;
 
       const entries = settled.map((result, index) => {
         const fallback = targets[index];
@@ -2701,19 +2699,23 @@ export function MonitoringCenterPage() {
       });
 
       const hasSuccess = entries.some((entry) => !entry.error);
-      setAccountQuotaStates((previous) => ({
-        ...previous,
-        [rowId]: {
-          status: hasSuccess ? 'success' : 'error',
-          targetKey,
-          providerType,
-          entries,
-          error: hasSuccess ? '' : entries[0]?.error || t('common.unknown_error'),
-          lastRefreshedAt: Date.now(),
-        },
-      }));
+      setAccountQuotaStates((previous) => {
+        if (previous[rowId]?.requestId !== requestId) return previous;
+        return {
+          ...previous,
+          [rowId]: {
+            status: hasSuccess ? 'success' : 'error',
+            targetKey,
+            providerType,
+            requestId,
+            entries,
+            error: hasSuccess ? '' : entries[0]?.error || t('common.unknown_error'),
+            lastRefreshedAt: Date.now(),
+          },
+        };
+      });
     },
-    [accountQuotaTargetsByRowId, t]
+    [accountQuotaStates, accountQuotaTargetsByRowId, t]
   );
 
   const toggleAccountExpanded = useCallback(
