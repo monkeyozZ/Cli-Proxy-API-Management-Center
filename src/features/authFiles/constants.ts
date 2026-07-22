@@ -33,6 +33,7 @@ export type QuotaProviderType =
   | 'kimi'
   | 'kiro'
   | 'xai';
+export type OAuthConfigLoadError = 'loading' | 'unsupported' | 'load' | null;
 
 export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
   'antigravity',
@@ -64,34 +65,34 @@ export const FALSY_TEXT_VALUES = new Set(['false', '0', 'no', 'n', 'off']);
 export const AUTH_FILE_WEBSOCKET_PROVIDERS = new Set(['codex', 'xai']);
 export const AUTH_FILE_USING_API_PROVIDERS = new Set(['xai']);
 
-// 标签类型颜色配置 — 基于各提供商 Logo 品牌色调配，确保彼此不重复
+// Provider label colors use distinct tones derived from each brand logo.
 export const TYPE_COLORS: Record<string, TypeColorSet> = {
-  // Qwen logo: 紫罗兰渐变 #6336E7 → #6F69F7
+  // Qwen logo: violet gradient #6336E7 to #6F69F7.
   qwen: {
     light: { bg: '#ede5fd', text: '#5530c7' },
     dark: { bg: '#36208a', text: '#b5a3f0' },
   },
-  // Kimi logo: 亮蓝 #027AFF（K字 + 蓝色圆点）
+  // Kimi logo: bright blue #027AFF with a blue dot.
   kimi: {
     light: { bg: '#dce8ff', text: '#0560cf' },
     dark: { bg: '#003880', text: '#70b5ff' },
   },
-  // Gemini logo: 多色蓝 #3186FF（偏柔和的蓝）
+  // Gemini logo: soft multicolor blue #3186FF.
   gemini: {
     light: { bg: '#e3f2fd', text: '#1565c0' },
     dark: { bg: '#0d47a1', text: '#64b5f6' },
   },
-  // AI Studio: 使用 Gemini 图标，中性灰标签
+  // AI Studio uses the Gemini icon with a neutral gray label.
   aistudio: {
     light: { bg: '#f0f2f5', text: '#2f343c' },
     dark: { bg: '#373c42', text: '#cfd3db' },
   },
-  // Claude logo: 陶土橙 #D97757
+  // Claude logo: terracotta orange #D97757.
   claude: {
     light: { bg: '#fbece4', text: '#c05621' },
     dark: { bg: '#5e2c14', text: '#e8a882' },
   },
-  // Codex logo: 靛蓝渐变 #B1A7FF → #3941FF
+  // Codex logo: indigo gradient #B1A7FF to #3941FF.
   codex: {
     light: { bg: '#eae7ff', text: '#3538d4' },
     dark: { bg: '#262395', text: '#b5b0ff' },
@@ -100,7 +101,7 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#efe7ff', text: '#6a35d4' },
     dark: { bg: '#2c185f', text: '#c5afff' },
   },
-  // Antigravity logo: 多色（主色 #3789F9 蓝 + #53A89A 青绿），用青色区分
+  // Antigravity logo: blue #3789F9 and teal #53A89A, represented by teal.
   antigravity: {
     light: { bg: '#e0f7fa', text: '#006064' },
     dark: { bg: '#004d40', text: '#80deea' },
@@ -110,12 +111,12 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#f3f4f6', text: '#111827', border: '1px solid #d1d5db' },
     dark: { bg: '#111827', text: '#f9fafb', border: '1px solid #374151' },
   },
-  // iFlow logo: 品红紫渐变 #5C5CFF → #AE5CFF，偏品红以区别于 Qwen 的紫罗兰
+  // iFlow logo: magenta gradient #5C5CFF to #AE5CFF, distinct from Qwen violet.
   iflow: {
     light: { bg: '#f5e3fc', text: '#9025c8' },
     dark: { bg: '#521490', text: '#d49cf5' },
   },
-  // Vertex logo: Google 蓝 #4285F4
+  // Vertex logo: Google blue #4285F4.
   vertex: {
     light: { bg: '#e4edfd', text: '#2b5fbc' },
     dark: { bg: '#1a3d80', text: '#89b3f7' },
@@ -139,7 +140,7 @@ export const AUTH_FILE_ICONS: Record<string, AuthFileIconAsset> = {
   xai: { light: iconGrok, dark: iconGrokDark },
   iflow: iconIflow,
   kiro: iconKiro,
-  kimi: { light: iconKimiLight, dark: iconKimiDark },
+  kimi: { light: iconKimiDark, dark: iconKimiLight },
   qwen: iconQwen,
   vertex: iconVertex,
 };
@@ -299,7 +300,7 @@ export const formatModified = (item: AuthFileItem): string => {
   return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
 };
 
-// 检查模型是否被 OAuth 排除
+// Check whether a model is excluded by an OAuth rule.
 export const isModelExcluded = (
   modelId: string,
   providerType: string,
@@ -309,7 +310,7 @@ export const isModelExcluded = (
   const excludedModels = excluded[providerKey] || excluded[providerType] || [];
   return excludedModels.some((pattern) => {
     if (pattern.includes('*')) {
-      // 支持通配符匹配：先转义正则特殊字符，再将 * 视为通配符
+      // Escape regex syntax before expanding * as a wildcard.
       const regexSafePattern = pattern
         .split('*')
         .map((segment) => segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
