@@ -1,11 +1,11 @@
 import { Navigate, useRoutes, type Location } from 'react-router-dom';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { ProvidersWorkbenchPage } from '@/features/providers/ProvidersWorkbenchPage';
-import { AuthFilesPage } from '@/pages/AuthFilesPage';
+import { AuthFilesPage } from '@/features/authFiles/AuthFilesPage';
 import { AuthFilesOAuthExcludedEditPage } from '@/pages/AuthFilesOAuthExcludedEditPage';
 import { AuthFilesOAuthModelAliasEditPage } from '@/pages/AuthFilesOAuthModelAliasEditPage';
 import { OAuthPage } from '@/pages/OAuthPage';
-import { QuotaPage } from '@/pages/QuotaPage';
+import { QuotaPage } from '@/features/quota/QuotaPage';
 import { MonitoringCenterPage } from '@/pages/MonitoringCenterPage';
 import { CodexInspectionPage } from '@/pages/CodexInspectionPage';
 import { PluginResourcePage } from '@/features/plugins/PluginResourcePage';

@@ -27,6 +27,12 @@ import {
   resolveQiniuCloudBaseUrl,
 } from './qiniuCloud';
 import {
+  LMU_AI_DISPLAY_NAME,
+  LMU_AI_PROTOCOL_LABELS,
+  getLmuAIProtocolUrls,
+  resolveLmuAIBaseUrl,
+} from './lmuAI';
+import {
   KIMI_DISPLAY_NAME,
   KIMI_PROTOCOL_LABELS,
   getKimiProtocolUrls,
@@ -66,7 +72,7 @@ const truncateForId = (value: string | undefined | null): string => {
 };
 
 function providerKeyToResource(
-  brand: 'gemini' | 'codex' | 'xai' | 'claude' | 'claudeApi' | 'vertex',
+  brand: 'gemini' | 'interactions' | 'codex' | 'xai' | 'claude' | 'claudeApi' | 'vertex',
   config: GeminiKeyConfig | ProviderKeyConfig,
   index: number
 ): ProviderResource {
@@ -115,6 +121,10 @@ function providerKeyToResource(
 
 export function geminiToResource(config: GeminiKeyConfig, index: number): ProviderResource {
   return providerKeyToResource('gemini', config, index);
+}
+
+export function interactionsToResource(config: GeminiKeyConfig, index: number): ProviderResource {
+  return providerKeyToResource('interactions', config, index);
 }
 
 export function codexToResource(config: ProviderKeyConfig, index: number): ProviderResource {
@@ -350,6 +360,15 @@ export function qiniuCloudToResource(raw: SponsorProviderRaw): ProviderResource 
     protocolLabels: QINIU_CLOUD_PROTOCOL_LABELS,
     resolveBaseUrl: resolveQiniuCloudBaseUrl,
     getProtocolUrls: getQiniuCloudProtocolUrls,
+  });
+}
+
+export function lmuAIToResource(raw: SponsorProviderRaw): ProviderResource | null {
+  return sponsorRawToResource('lmuAI', raw, {
+    displayName: LMU_AI_DISPLAY_NAME,
+    protocolLabels: LMU_AI_PROTOCOL_LABELS,
+    resolveBaseUrl: resolveLmuAIBaseUrl,
+    getProtocolUrls: getLmuAIProtocolUrls,
   });
 }
 
