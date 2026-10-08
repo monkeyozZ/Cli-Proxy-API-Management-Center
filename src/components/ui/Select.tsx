@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type AriaAttributes,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { IconChevronDown } from './icons';
@@ -28,6 +29,7 @@ interface SelectProps {
   ariaLabel?: string;
   ariaLabelledBy?: string;
   ariaDescribedBy?: string;
+  ariaInvalid?: AriaAttributes['aria-invalid'];
   fullWidth?: boolean;
   size?: 'sm' | 'md';
   id?: string;
@@ -88,6 +90,7 @@ export function Select({
   ariaLabel,
   ariaLabelledBy,
   ariaDescribedBy,
+  ariaInvalid,
   fullWidth = true,
   size = 'md',
   id,
@@ -98,6 +101,7 @@ export function Select({
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const [dropdownStyle, setDropdownStyle] = useState<CSSProperties | null>(null);
@@ -193,6 +197,7 @@ export function Select({
       onChange(nextOption.value);
       setOpen(false);
       setHighlightedIndex(nextIndex);
+      triggerRef.current?.focus({ preventScroll: true });
     },
     [onChange, options]
   );
@@ -252,7 +257,9 @@ export function Select({
         case 'Escape':
           if (!isOpen) return;
           event.preventDefault();
+          event.stopPropagation();
           setOpen(false);
+          triggerRef.current?.focus({ preventScroll: true });
           return;
         case 'Tab':
           if (isOpen) setOpen(false);
@@ -312,6 +319,7 @@ export function Select({
       >
         <button
           id={selectId}
+          ref={triggerRef}
           type="button"
           className={[styles.trigger, size === 'sm' ? styles.triggerSm : '', triggerClassName]
             .filter(Boolean)
@@ -329,6 +337,7 @@ export function Select({
           aria-label={ariaLabel}
           aria-labelledby={ariaLabelledBy}
           aria-describedby={ariaDescribedBy}
+          aria-invalid={ariaInvalid}
           disabled={disabled}
         >
           <span className={`${styles.triggerText} ${isPlaceholder ? styles.placeholder : ''}`}>

@@ -92,22 +92,24 @@ jobs:
           done <<'EOF'
           src/assets/icons/kiro.svg
           src/pages/OAuthPage.tsx
+          src/pages/oauthAttempts.ts
+          src/router/MainRoutes.tsx
+          src/components/layout/MainLayout.tsx
           src/services/api/oauth.ts
+          src/services/api/client.ts
+          src/utils/connection.ts
+          src/utils/providerKeys.ts
           src/services/api/authFiles.ts
           :(glob)src/features/authFiles/**
-          :(glob)src/components/quota/**
-          src/pages/QuotaPage.tsx
-          src/pages/QuotaPage.module.scss
-          src/pages/AuthFilesPage.module.scss
+          :(glob)src/features/quota/**
           src/stores/useQuotaStore.ts
           src/types/authFile.ts
           src/types/oauth.ts
           src/types/quota.ts
           src/utils/constants.ts
           :(glob)src/utils/quota/**
-          src/i18n/locales/en.json
-          src/i18n/locales/ru.json
-          src/i18n/locales/zh-CN.json
+          :(glob)src/i18n/locales/*.json
+          tests/forkFeaturesV8.test.ts
           EOF
 
           sort -u guarded_files.txt -o guarded_files.txt
@@ -129,21 +131,35 @@ jobs:
           done <<'EOF'
           src/pages/MonitoringCenterPage.tsx
           src/pages/MonitoringCenterPage.module.scss
+          src/pages/CodexInspectionPage.tsx
+          src/pages/CodexInspectionPage.module.scss
+          src/components/layout/MainLayout.tsx
           src/pages/SystemPage.tsx
           src/pages/SystemPage.module.scss
           src/router/MainRoutes.tsx
           :(glob)src/features/monitoring/**
-          :(glob)src/components/usage/**
+          :(glob)src/features/logs/**
           src/services/api/usage.ts
           src/services/api/usageService.ts
+          src/services/api/authFiles.ts
+          src/services/api/apiCall.ts
+          src/services/api/providers.ts
+          src/services/api/transformers.ts
+          src/services/api/client.ts
+          src/utils/connection.ts
+          src/utils/constants.ts
+          src/utils/sourceResolver.ts
+          src/utils/usageIndex.ts
+          src/types/sourceInfo.ts
+          src/types/usage.ts
+          src/types/config.ts
           src/stores/useUsageStatsStore.ts
           src/stores/useUsageServiceStore.ts
           src/utils/usage.ts
           :(glob)src/utils/usage/**
-          src/i18n/locales/en.json
-          src/i18n/locales/ru.json
-          src/i18n/locales/zh-CN.json
-          src/i18n/locales/zh-TW.json
+          :(glob)src/i18n/locales/*.json
+          tests/forkFeaturesV8.test.ts
+          scripts/run_usage_targeted_checks.sh
           EOF
 
           sort -u usage_guarded_files.txt -o usage_guarded_files.txt
@@ -165,22 +181,35 @@ jobs:
           done <<'EOF'
           src/pages/MonitoringCenterPage.tsx
           src/pages/MonitoringCenterPage.module.scss
+          src/pages/CodexInspectionPage.tsx
+          src/pages/CodexInspectionPage.module.scss
+          src/components/layout/MainLayout.tsx
           src/pages/SystemPage.tsx
           src/pages/SystemPage.module.scss
           src/router/MainRoutes.tsx
           :(glob)src/features/monitoring/**
-          :(glob)src/components/usage/**
+          :(glob)src/features/logs/**
           src/services/api/usage.ts
           src/services/api/usageService.ts
+          src/services/api/authFiles.ts
+          src/services/api/apiCall.ts
+          src/services/api/providers.ts
+          src/services/api/transformers.ts
           src/services/api/client.ts
+          src/utils/connection.ts
+          src/utils/constants.ts
+          src/utils/sourceResolver.ts
+          src/utils/usageIndex.ts
+          src/types/sourceInfo.ts
+          src/types/usage.ts
+          src/types/config.ts
           src/stores/useUsageStatsStore.ts
           src/stores/useUsageServiceStore.ts
           src/utils/usage.ts
           :(glob)src/utils/usage/**
-          src/i18n/locales/en.json
-          src/i18n/locales/ru.json
-          src/i18n/locales/zh-CN.json
-          src/i18n/locales/zh-TW.json
+          :(glob)src/i18n/locales/*.json
+          tests/forkFeaturesV8.test.ts
+          scripts/run_usage_targeted_checks.sh
           package.json
           bun.lock
           tsconfig.json

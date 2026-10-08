@@ -136,7 +136,7 @@ export function useUsageData(): UseUsageDataReturn {
       if (usageServiceEnabled && usageServiceBase) {
         return usageServiceApi.clearUsage(usageServiceBase, managementKey, range);
       }
-      return apiClient.delete<UsageClearResponse>('/usage', {
+      return apiClient.delete<UsageClearResponse>('/observability/usage', {
         params: range,
       });
     },
@@ -175,7 +175,7 @@ export function useUsageData(): UseUsageDataReturn {
       const payload =
         usageServiceEnabled && usageServiceBase
           ? await usageServiceApi.getUsage(usageServiceBase, managementKey)
-          : await apiClient.get<UsagePayload>('/usage');
+          : await apiClient.get<UsagePayload>('/observability/usage');
       if (requestIdRef.current !== requestId) return;
       setUsage(payload ?? null);
       setLastRefreshedAt(new Date());

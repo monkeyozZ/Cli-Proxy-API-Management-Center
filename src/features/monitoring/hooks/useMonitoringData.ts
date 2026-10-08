@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { authFilesApi } from '@/services/api/authFiles';
-import { apiClient } from '@/services/api/client';
+import { providersApi } from '@/services/api/providers';
 import type { AuthFileItem } from '@/types/authFile';
 import type { Config } from '@/types/config';
 import type { CredentialInfo } from '@/types/sourceInfo';
@@ -42,9 +42,9 @@ const isValidCustomTimeRange = (
 ): range is MonitoringCustomTimeRange =>
   Boolean(
     range &&
-      Number.isFinite(range.startMs) &&
-      Number.isFinite(range.endMs) &&
-      range.startMs <= range.endMs
+    Number.isFinite(range.startMs) &&
+    Number.isFinite(range.endMs) &&
+    range.startMs <= range.endMs
   );
 
 export const getRangeBounds = (
@@ -114,13 +114,6 @@ const readString = (value: unknown) => {
   return text;
 };
 
-const extractArrayPayload = (payload: unknown, key: string): unknown[] => {
-  if (Array.isArray(payload)) return payload;
-  if (!isRecord(payload)) return [];
-  const candidate = payload[key] ?? payload.items ?? payload.data ?? payload;
-  return Array.isArray(candidate) ? candidate : [];
-};
-
 const extractHost = (baseUrl: string) => {
   const trimmed = readString(baseUrl);
   if (!trimmed) return '-';
@@ -133,7 +126,13 @@ const extractHost = (baseUrl: string) => {
 };
 
 const joinUnique = (values: Iterable<string>, limit = 3) => {
-  const unique = Array.from(new Set(Array.from(values).map((value) => value.trim()).filter(Boolean)));
+  const unique = Array.from(
+    new Set(
+      Array.from(values)
+        .map((value) => value.trim())
+        .filter(Boolean)
+    )
+  );
   if (unique.length <= limit) {
     return unique.join(', ');
   }
@@ -146,8 +145,9 @@ const buildSearchText = (...parts: Array<string | number | boolean | null | unde
     .filter(Boolean)
     .join(' ');
 
-const shouldIncludeInStats = (row: Pick<MonitoringEventRow, 'failed' | 'inputTokens' | 'outputTokens'>) =>
-  row.failed || row.inputTokens > 0 || row.outputTokens > 0;
+const shouldIncludeInStats = (
+  row: Pick<MonitoringEventRow, 'failed' | 'inputTokens' | 'outputTokens'>
+) => row.failed || row.inputTokens > 0 || row.outputTokens > 0;
 
 const isEffectiveLabel = (value: string) => {
   const trimmed = value.trim();
@@ -485,7 +485,8 @@ const normalizeOpenAIChannel = (value: unknown, index: number): MonitoringChanne
     authIndices.add(providerAuthIndex);
   }
 
-  const apiKeyEntries = Array.isArray(value['api-key-entries']) ? value['api-key-entries'] : [];
+  const keyEntries = value.apiKeyEntries ?? value['api-key-entries'];
+  const apiKeyEntries = Array.isArray(keyEntries) ? keyEntries : [];
   apiKeyEntries.forEach((entry) => {
     if (!isRecord(entry)) return;
     const authIndex = normalizeAuthIndex(
@@ -701,7 +702,9 @@ export const buildMonitoringSummary = (rows: MonitoringEventRow[]): MonitoringSu
   const activeDayCount = Math.max(activeDays.size, 1);
   const nowMs = Date.now();
   const windowStart = nowMs - 30 * 60 * 1000;
-  const recentRows = rows.filter((row) => row.timestampMs >= windowStart && row.timestampMs <= nowMs);
+  const recentRows = rows.filter(
+    (row) => row.timestampMs >= windowStart && row.timestampMs <= nowMs
+  );
   const recentTokens = recentRows.reduce((sum, row) => sum + row.totalTokens, 0);
 
   return {
@@ -873,7 +876,9 @@ export const buildAccountRows = (rows: MonitoringEventRow[]): MonitoringAccountR
             ...model,
             successRate: model.totalCalls > 0 ? model.successCalls / model.totalCalls : 1,
           }))
-          .sort((left, right) => right.totalCost - left.totalCost || right.totalCalls - left.totalCalls),
+          .sort(
+            (left, right) => right.totalCost - left.totalCost || right.totalCalls - left.totalCalls
+          ),
       };
     })
     .sort(
@@ -1001,7 +1006,9 @@ export const buildRealtimeMonitorRows = (rows: MonitoringEventRow[]): Monitoring
         recentPattern: buildRecentPattern(item.rows),
       };
     })
-    .sort((left, right) => right.lastSeenAt - left.lastSeenAt || right.totalCalls - left.totalCalls);
+    .sort(
+      (left, right) => right.lastSeenAt - left.lastSeenAt || right.totalCalls - left.totalCalls
+    );
 };
 
 const buildStatusChips = (metadata: MonitoringMetadata): MonitoringStatusChip[] => [
@@ -1010,17 +1017,18 @@ const buildStatusChips = (metadata: MonitoringMetadata): MonitoringStatusChip[] 
     label: 'credentials',
     value: `${metadata.activeAuthFiles}/${metadata.totalAuthFiles}`,
     tone:
-      metadata.totalAuthFiles === 0
-        ? 'warn'
-        : metadata.unavailableAuthFiles > 0
-          ? 'warn'
-          : 'good',
+      metadata.totalAuthFiles === 0 ? 'warn' : metadata.unavailableAuthFiles > 0 ? 'warn' : 'good',
   },
   {
     key: 'channels',
     label: 'channels',
     value: `${metadata.enabledChannels}/${metadata.totalChannels}`,
-    tone: metadata.enabledChannels === 0 ? 'bad' : metadata.enabledChannels < metadata.totalChannels ? 'warn' : 'good',
+    tone:
+      metadata.enabledChannels === 0
+        ? 'bad'
+        : metadata.enabledChannels < metadata.totalChannels
+          ? 'warn'
+          : 'good',
   },
   {
     key: 'runtime_only',
@@ -1379,8 +1387,15 @@ const buildEventRows = (
       const authIndex = normalizeAuthIndex(detail.auth_index) ?? '-';
       const detailRecord = detail as UsageDetailWithEndpoint & Record<string, unknown>;
       const authMeta = authMetaMap.get(authIndex);
-      const sourceMeta = resolveSourceDisplay(detail.source, detail.auth_index, sourceInfoMap, authFileMap);
-      const snapshotAccount = readString(detailRecord.account_snapshot ?? detailRecord.accountSnapshot);
+      const sourceMeta = resolveSourceDisplay(
+        detail.source,
+        detail.auth_index,
+        sourceInfoMap,
+        authFileMap
+      );
+      const snapshotAccount = readString(
+        detailRecord.account_snapshot ?? detailRecord.accountSnapshot
+      );
       const snapshotLabel = readString(
         detailRecord.auth_label_snapshot ??
           detailRecord.authLabelSnapshot ??
@@ -1410,7 +1425,10 @@ const buildEventRows = (
         Math.max(Number(detail.tokens?.cached_tokens) || 0, 0),
         Math.max(Number(detail.tokens?.cache_tokens) || 0, 0)
       );
-      const totalTokens = Math.max(Number(detail.tokens?.total_tokens) || 0, extractTotalTokens(detail));
+      const totalTokens = Math.max(
+        Number(detail.tokens?.total_tokens) || 0,
+        extractTotalTokens(detail)
+      );
       const totalCost = calculateCost(detail, modelPrices);
       const statsIncluded = detail.failed === true || inputTokens > 0 || outputTokens > 0;
       const dayKey = buildLocalDayKey(timestampMs);
@@ -1468,12 +1486,12 @@ const buildEventRows = (
     })
     .filter(Boolean) as MonitoringEventRow[];
 
-const loadMonitoringMetaPayload = async (
+export const loadMonitoringMetaPayload = async (
   config: Config | null | undefined
 ): Promise<MonitoringMetaPayload> => {
   const [authResult, channelResult] = await Promise.allSettled([
     authFilesApi.list(),
-    apiClient.get('/openai-compatibility'),
+    providersApi.getOpenAIProviders(),
   ]);
 
   const authFiles =
@@ -1484,7 +1502,7 @@ const loadMonitoringMetaPayload = async (
   let channels: MonitoringChannelMeta[] = [];
 
   if (channelResult.status === 'fulfilled') {
-    channels = extractArrayPayload(channelResult.value, 'openai-compatibility')
+    channels = channelResult.value
       .map((item, index) => normalizeOpenAIChannel(item, index))
       .filter(Boolean) as MonitoringChannelMeta[];
   } else if (config?.openaiCompatibility?.length) {
@@ -1526,18 +1544,21 @@ export function useMonitoringData({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const refreshMeta = useCallback(async (showLoading: boolean = true) => {
-    if (showLoading) {
-      setLoading(true);
-      setError('');
-    }
+  const refreshMeta = useCallback(
+    async (showLoading: boolean = true) => {
+      if (showLoading) {
+        setLoading(true);
+        setError('');
+      }
 
-    const payload = await loadMonitoringMetaPayload(config);
-    setAuthFiles(payload.authFiles);
-    setChannels(payload.channels);
-    setError(payload.error);
-    setLoading(false);
-  }, [config]);
+      const payload = await loadMonitoringMetaPayload(config);
+      setAuthFiles(payload.authFiles);
+      setChannels(payload.channels);
+      setError(payload.error);
+      setLoading(false);
+    },
+    [config]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -1607,9 +1628,14 @@ export function useMonitoringData({
 
   const allRows = useMemo(() => {
     const details = collectUsageDetailsWithEndpoint(usage);
-    return buildEventRows(details, authMetaMap, authFileMap, sourceInfoMap, channelByAuthIndex, modelPrices).sort(
-      (left, right) => right.timestampMs - left.timestampMs
-    );
+    return buildEventRows(
+      details,
+      authMetaMap,
+      authFileMap,
+      sourceInfoMap,
+      channelByAuthIndex,
+      modelPrices
+    ).sort((left, right) => right.timestampMs - left.timestampMs);
   }, [authFileMap, authMetaMap, channelByAuthIndex, modelPrices, sourceInfoMap, usage]);
 
   const filteredRows = useMemo(

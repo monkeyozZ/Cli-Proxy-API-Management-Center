@@ -8,6 +8,8 @@ export const QUOTA_TAB_ORDER: readonly QuotaProviderType[] = [
   'xai',
   'kimi',
   'kiro',
+  'devin',
+  'meta',
 ];
 
 export type QuotaTabId = 'all' | QuotaProviderType;

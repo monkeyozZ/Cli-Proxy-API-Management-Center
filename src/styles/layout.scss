@@ -730,7 +730,7 @@
 
 .nav-tooltip {
   position: fixed;
-  left: calc(var(--sidebar-collapsed-width) + 12px);
+  left: calc(var(--sidebar-active-width) + 20px);
   z-index: $z-dropdown + 2;
   transform: translateY(-50%);
   display: flex;
@@ -738,7 +738,7 @@
   gap: 3px;
   box-sizing: border-box;
   width: max-content;
-  max-width: min(320px, calc(100vw - var(--sidebar-collapsed-width) - 24px));
+  max-width: min(320px, calc(100vw - var(--sidebar-active-width) - 32px));
   max-height: calc(100vh - 16px);
   padding: 9px 12px;
   overflow: hidden;
@@ -748,6 +748,7 @@
   box-shadow: 0 14px 36px rgb(0 0 0 / 0.32);
   pointer-events: none;
   animation: nav-tooltip-in $transition-fast ease-out;
+  transition: left $transition-normal;
 
   .nav-tooltip-label {
     max-width: 100%;
@@ -794,6 +795,7 @@
 
   &.content-logs {
     overflow: hidden;
+    scrollbar-gutter: auto;
   }
 
   &.content-plugin-resource {
@@ -814,6 +816,7 @@
   &.main-content-logs {
     flex: 1 1 auto;
     min-height: 0;
+    padding: 70px clamp(20px, 3vw, 48px) 24px;
     overflow: hidden;
   }
 
@@ -823,13 +826,13 @@
     padding: 0;
     gap: 0;
     overflow: hidden;
-    background: #ffffff;
+    background: var(--bg-secondary);
 
     .page-transition,
     .page-transition__layer {
       height: 100%;
       gap: 0;
-      background: #ffffff;
+      background: var(--bg-secondary);
     }
   }
 }
@@ -979,9 +982,9 @@
     overflow-y: auto;
 
     &.content-logs {
-      overflow: visible;
-      overflow-y: auto;
-      height: auto;
+      height: 100dvh;
+      min-height: 0;
+      overflow: hidden;
     }
 
     &.content-plugin-resource {
@@ -1006,9 +1009,10 @@
     }
 
     &.main-content-logs {
-      flex: 0 0 auto;
-      min-height: auto;
-      overflow: visible;
+      flex: 1 1 auto;
+      min-height: 0;
+      padding: calc(var(--header-height) + 8px) 8px max(8px, env(safe-area-inset-bottom));
+      overflow: hidden;
     }
   }
 }
